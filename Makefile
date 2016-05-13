@@ -1,7 +1,7 @@
 .PHONY: asset deps install test
 .DEFAULT_GOAL := help
 
-install: ## Install the app
+install: ## Install
 	go install ./...
 
 test: ## Run all test
