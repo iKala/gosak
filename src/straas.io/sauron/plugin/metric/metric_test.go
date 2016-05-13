@@ -10,6 +10,7 @@ import (
 
 	"straas.io/sauron"
 	"straas.io/sauron/mocks"
+	"straas.io/sauron/util"
 )
 
 const (
@@ -73,10 +74,14 @@ func TestMetricSuite(t *testing.T) {
 type metricTestSuite struct {
 	suite.Suite
 	plugin *metricQueryPlugin
+	clock  util.FakeClock
 }
 
 func (s *metricTestSuite) SetupTest() {
-	s.plugin = &metricQueryPlugin{}
+	s.clock = util.NewFakeClock()
+	s.plugin = &metricQueryPlugin{
+		clock: s.clock,
+	}
 }
 
 func (s *metricTestSuite) TestIndices() {
@@ -244,9 +249,7 @@ func (s *metricTestSuite) TestHandleResult() {
 
 func (s *metricTestSuite) TestArgument() {
 	now, _ := time.Parse(time.RFC3339, testNow)
-	timeNow = func() time.Time {
-		return now
-	}
+	s.clock.SetNow(now)
 
 	ctx := &mocks.PluginContext{}
 	ctx.On("JobMeta").Return(sauron.JobMeta{Env: testEnv}).Once()

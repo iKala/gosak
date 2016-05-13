@@ -16,11 +16,6 @@ const (
 	maxConsErrs    = 10
 )
 
-var (
-	// for testing purpose
-	timeNow = time.Now
-)
-
 // NewJobRunner creates a job runner
 func NewJobRunner(
 	runnerID string,
@@ -28,8 +23,9 @@ func NewJobRunner(
 	ticker <-chan time.Time,
 	store sauron.Store,
 	jobs []sauron.JobMeta,
-	plugins []sauron.Plugin) sauron.JobRunner {
-
+	plugins []sauron.Plugin,
+	clock sauron.Clock,
+) sauron.JobRunner {
 	return &jobRunner{
 		runnerID:   runnerID,
 		engFactory: engFactory,
@@ -37,6 +33,7 @@ func NewJobRunner(
 		plugins:    plugins,
 		store:      store,
 		ticker:     ticker,
+		clock:      clock,
 
 		events:  make(chan sauron.JobEvent, chanBufferSize),
 		done:    make(chan bool, 1),
@@ -58,6 +55,7 @@ type jobRunner struct {
 	plugins     []sauron.Plugin
 	jobs        []sauron.JobMeta
 	runningJobs map[string]*jobStatus
+	clock       sauron.Clock
 
 	events  chan sauron.JobEvent
 	ticker  <-chan time.Time
@@ -111,7 +109,7 @@ func (j *jobRunner) Events() <-chan sauron.JobEvent {
 func (j *jobRunner) insertJobs(jobs []sauron.JobMeta) {
 	for _, meta := range jobs {
 		j.updateJobStatus(meta.JobID, func(status *jobStatus) (*jobStatus, error) {
-			now := timeNow()
+			now := j.clock.Now()
 			lastRun := time.Unix(status.LastRun, 0)
 			// still try to run if not the same runner
 			if status.RunnerID == j.runnerID && status.Running {
@@ -168,7 +166,7 @@ func (j *jobRunner) loopOnce() bool {
 	case meta := <-j.success:
 		j.updateJobStatus(meta.JobID, func(status *jobStatus) (*jobStatus, error) {
 			status.Running = false
-			status.LastSuccess = timeNow().Unix()
+			status.LastSuccess = j.clock.Now().Unix()
 			status.ConsError = 0
 			return status, nil
 		})
@@ -177,7 +175,7 @@ func (j *jobRunner) loopOnce() bool {
 	case meta := <-j.fail:
 		j.updateJobStatus(meta.JobID, func(status *jobStatus) (*jobStatus, error) {
 			status.Running = false
-			status.LastFail = timeNow().Unix()
+			status.LastFail = j.clock.Now().Unix()
 			status.ConsError++
 			// report consecutive errors
 			if status.ConsError >= maxConsErrs {

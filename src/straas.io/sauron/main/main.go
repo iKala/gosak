@@ -12,6 +12,8 @@ import (
 
 	"straas.io/sauron"
 	"straas.io/sauron/core"
+	"straas.io/sauron/util"
+	// plugins
 	"straas.io/sauron/plugin/metric"
 )
 
@@ -29,6 +31,8 @@ func init() {
 // TODO: config loader
 func main() {
 	flag.Parse()
+
+	clock := util.NewRealClock()
 
 	// create es client
 	esClient, err := elastic.NewClient(
@@ -72,7 +76,7 @@ func main() {
 	}
 	// list all plugin
 	plugins := []sauron.Plugin{
-		metric.NewQuery(esClient),
+		metric.NewQuery(esClient, clock),
 	}
 
 	// runnerID
@@ -86,7 +90,9 @@ func main() {
 		ticker,
 		statusStore,
 		jobs,
-		plugins)
+		plugins,
+		clock,
+	)
 
 	runner.Start()
 	log.Println("start to run jobs")

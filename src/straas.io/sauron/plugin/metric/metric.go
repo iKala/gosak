@@ -22,20 +22,20 @@ var (
 	indexPrefix = flag.String("metricIndexPrefix", "metric", "elasticsearch index prefix")
 	datePattern = flag.String("metricDatePattern", "2006.01", "date pattern of eleasicsearch index")
 	timeField   = flag.String("metricTimeField", "@timestamp", "metric time field")
-	// for testing purpose
-	timeNow = time.Now
 )
 
 // NewQuery create a metric query plugin
-func NewQuery(client *elastic.Client) sauron.Plugin {
+func NewQuery(client *elastic.Client, clock sauron.Clock) sauron.Plugin {
 	return &metricQueryPlugin{
 		client: client,
+		clock:  clock,
 	}
 }
 
 // TODO: leverage LUR cache for better performance
 type metricQueryPlugin struct {
 	client *elastic.Client
+	clock  sauron.Clock
 }
 
 func (p *metricQueryPlugin) Name() string {
@@ -70,7 +70,7 @@ func (p *metricQueryPlugin) Run(ctx sauron.PluginContext) error {
 
 	// query and set return value
 	value, err := p.doQuery(
-		timeNow(),
+		p.clock.Now(),
 		ctx.JobMeta().Env,
 		modulePattern,
 		namePattern,

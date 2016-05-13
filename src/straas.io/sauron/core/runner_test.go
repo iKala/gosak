@@ -9,6 +9,7 @@ import (
 
 	"straas.io/sauron"
 	"straas.io/sauron/mocks"
+	"straas.io/sauron/util"
 )
 
 var (
@@ -45,17 +46,15 @@ func newContext(t *testing.T) *testContext {
 		plugin1: &mocks.Plugin{},
 		plugin2: &mocks.Plugin{},
 		ticker:  make(chan time.Time, 1),
-		curTime: time.Now(),
 		store:   store,
-	}
-	timeNow = func() time.Time {
-		return c.curTime
+		clock:   util.NewFakeClock(),
 	}
 	engFactory := func() sauron.Engine {
 		return c.engFactory()
 	}
 	plugins := []sauron.Plugin{c.plugin1, c.plugin2}
-	c.runner = NewJobRunner(testRunnerID, engFactory, c.ticker, c.store, nil, plugins).(*jobRunner)
+	c.runner = NewJobRunner(testRunnerID, engFactory, c.ticker,
+		c.store, nil, plugins, c.clock).(*jobRunner)
 	return c
 }
 
@@ -68,6 +67,7 @@ type testContext struct {
 	engFactory sauron.EngineFactory
 	store      sauron.Store
 	curTime    time.Time
+	clock      util.FakeClock
 }
 
 func (c *testContext) loopOnceTimeout() {
@@ -218,19 +218,20 @@ func (s *runnerTestSuite) TestRunJob() {
 	}
 
 	// loop once, should add jobs to pending
-	c.ticker <- timeNow()
+	c.ticker <- c.clock.Now()
+	curTime := c.clock.Now()
 	c.loopOnceTimeout()
 
 	// 3 jobs invoked
 	// all should be running
 	for _, job := range testJobs {
 		status, _ := c.runner.ensureJobStatus(job.JobID)
-		s.Equal(status.LastRun, c.curTime.Unix())
+		s.Equal(status.LastRun, curTime.Unix())
 		s.True(status.Running)
 	}
 
 	// tick
-	c.curTime = c.curTime.Add(time.Minute)
+	curTime = c.clock.Now()
 
 	// 3 jobs report
 	c.loopOnceTimeout()
@@ -244,7 +245,7 @@ func (s *runnerTestSuite) TestRunJob() {
 	// all should not running
 	for _, job := range testJobs {
 		status, _ := c.runner.ensureJobStatus(job.JobID)
-		s.Equal(status.LastSuccess, c.curTime.Unix())
+		s.Equal(status.LastSuccess, curTime.Unix())
 		s.False(status.Running)
 	}
 }
@@ -259,7 +260,7 @@ func (s *runnerTestSuite) TestIgnoreRunJob() {
 		Running:  true,
 	})
 	c.runner.setJobStatus(testJobs[1].JobID, &jobStatus{
-		LastRun: timeNow().Unix(),
+		LastRun: c.clock.Now().Unix(),
 	})
 
 	engs := []*mocks.Engine{}
@@ -275,7 +276,7 @@ func (s *runnerTestSuite) TestIgnoreRunJob() {
 	}
 
 	// 3 jobs, but only one invoked
-	c.ticker <- timeNow()
+	c.ticker <- c.clock.Now()
 	c.loopOnceTimeout()
 	// one report
 	c.loopOnceTimeout()
@@ -311,13 +312,13 @@ func (s *runnerTestSuite) TestRunJobError() {
 	}
 
 	// 3 jobs
-	c.ticker <- timeNow()
+	c.ticker <- c.clock.Now()
 	c.loopOnceTimeout()
 
 	// tick
-	c.curTime = c.curTime.Add(time.Minute)
+	curTime := c.clock.Incr(time.Minute)
 
-	// one report
+	// 3 jobs report
 	c.loopOnceTimeout()
 	c.loopOnceTimeout()
 	c.loopOnceTimeout()
@@ -331,9 +332,9 @@ func (s *runnerTestSuite) TestRunJobError() {
 		status, _ := c.runner.ensureJobStatus(job.JobID)
 		s.False(status.Running)
 		if job.JobID == testJobs[2].JobID {
-			s.Equal(status.LastFail, c.curTime.Unix())
+			s.Equal(status.LastFail, curTime.Unix())
 		} else {
-			s.Equal(status.LastSuccess, c.curTime.Unix())
+			s.Equal(status.LastSuccess, curTime.Unix())
 		}
 	}
 }
