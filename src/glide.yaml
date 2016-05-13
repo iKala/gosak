@@ -12,3 +12,9 @@ import:
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
 - package: gopkg.in/sourcemap.v1
   version: dcbf482f1905a26c02d8d5cad7e65e9cb124f8eb
+- package: gopkg.in/olivere/elastic.v3
+  version: 9ccf48af2c7c0a61ce157876b2be9287679d261b
+- package: github.com/golang/groupcache
+  version: 4eab30f13db9d8b25c752e99d1583628ac2fa422
+  subpackages:
+  - lru

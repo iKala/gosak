@@ -8,6 +8,11 @@ import (
 	"straas.io/sauron"
 )
 
+const (
+	dummyStatement = `1==1;`
+)
+
+// NewEngine creates an instance of engine
 func NewEngine() sauron.Engine {
 	return &engineImpl{
 		vm: otto.New(),
@@ -40,7 +45,10 @@ func (e *engineImpl) Run() (err error) {
 	// buffered to avoid blocking
 	e.vm.Interrupt = make(chan func(), 1)
 	// TODO: cache compiled script for better performance
-	_, err = e.vm.Run(e.meta.Script)
+	// add one more dummy statement for vm to have chance to throw exception
+	script := fmt.Sprintf("%s\n%s", e.meta.Script, dummyStatement)
+
+	_, err = e.vm.Run(script)
 	return err
 }
 

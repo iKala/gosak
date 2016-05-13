@@ -202,9 +202,11 @@ func (j *jobRunner) invokeJob(meta sauron.JobMeta) error {
 	// invoke a goroutine to run jobs parallelly
 	go func() {
 		if err := eng.Run(); err != nil {
+			log.Printf("execute %s fail, err:%v", meta.JobID, err)
 			j.fail <- meta
 			return
 		}
+		log.Printf("execute %s success", meta.JobID)
 		j.success <- meta
 	}()
 	return nil
