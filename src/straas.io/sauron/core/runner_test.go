@@ -7,9 +7,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"straas.io/base/timeutil"
 	"straas.io/sauron"
 	"straas.io/sauron/mocks"
-	"straas.io/sauron/util"
 )
 
 var (
@@ -47,7 +47,7 @@ func newContext(t *testing.T) *testContext {
 		plugin2: &mocks.Plugin{},
 		ticker:  make(chan time.Time, 1),
 		store:   store,
-		clock:   util.NewFakeClock(),
+		clock:   timeutil.NewFakeClock(),
 	}
 	engFactory := func() sauron.Engine {
 		return c.engFactory()
@@ -67,7 +67,7 @@ type testContext struct {
 	engFactory sauron.EngineFactory
 	store      sauron.Store
 	curTime    time.Time
-	clock      util.FakeClock
+	clock      timeutil.FakeClock
 }
 
 func (c *testContext) loopOnceTimeout() {

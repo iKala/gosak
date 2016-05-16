@@ -18,3 +18,5 @@ import:
   version: 4eab30f13db9d8b25c752e99d1583628ac2fa422
   subpackages:
   - lru
+- package: github.com/Sirupsen/logrus
+  version: cd7d1bbe41066b6c1f19780f895901052150a575

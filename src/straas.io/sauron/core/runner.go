@@ -1,10 +1,10 @@
 package core
 
 import (
-	"fmt"
-	"log"
 	"time"
 
+	"straas.io/base/logger"
+	"straas.io/base/timeutil"
 	"straas.io/sauron"
 )
 
@@ -16,6 +16,10 @@ const (
 	maxConsErrs    = 10
 )
 
+var (
+	log = logger.Get()
+)
+
 // NewJobRunner creates a job runner
 func NewJobRunner(
 	runnerID string,
@@ -24,7 +28,7 @@ func NewJobRunner(
 	store sauron.Store,
 	jobs []sauron.JobMeta,
 	plugins []sauron.Plugin,
-	clock sauron.Clock,
+	clock timeutil.Clock,
 ) sauron.JobRunner {
 	return &jobRunner{
 		runnerID:   runnerID,
@@ -55,7 +59,7 @@ type jobRunner struct {
 	plugins     []sauron.Plugin
 	jobs        []sauron.JobMeta
 	runningJobs map[string]*jobStatus
-	clock       sauron.Clock
+	clock       timeutil.Clock
 
 	events  chan sauron.JobEvent
 	ticker  <-chan time.Time
@@ -113,7 +117,7 @@ func (j *jobRunner) insertJobs(jobs []sauron.JobMeta) {
 			lastRun := time.Unix(status.LastRun, 0)
 			// still try to run if not the same runner
 			if status.RunnerID == j.runnerID && status.Running {
-				log.Printf("job %s is alreay running", meta.JobID)
+				log.Infof("job %s is alreay running", meta.JobID)
 				// report timeout, cannot finish in a running interval
 				if now.Sub(lastRun) > meta.Interval {
 					j.sendEvent(meta.JobID, sauron.EventTimeout)
@@ -123,15 +127,14 @@ func (j *jobRunner) insertJobs(jobs []sauron.JobMeta) {
 
 			// check running interval with allowed error
 			if now.Sub(lastRun)+schedErrTime < meta.Interval {
-				log.Printf("job %s waits for next round", meta.JobID)
-				fmt.Println(now, lastRun, status.LastRun)
+				log.Infof("job %s waits for next round", meta.JobID)
 				return nil, nil
 			}
 			if err := j.invokeJob(meta); err != nil {
-				log.Println("fail to invoke job %s, err:%v", err)
+				log.Infof("fail to invoke job %s, err:%v", err)
 				return nil, err
 			}
-			log.Printf("job %s invoked", meta.JobID)
+			log.Infof("job %s invoked", meta.JobID)
 			status.Running = true
 			status.LastRun = now.Unix()
 			return status, nil
@@ -140,7 +143,7 @@ func (j *jobRunner) insertJobs(jobs []sauron.JobMeta) {
 }
 
 func (j *jobRunner) runLoop() {
-	log.Println("start job runner loop")
+	log.Infof("start job runner loop")
 	for j.loopOnce() {
 	}
 }
@@ -155,11 +158,11 @@ func (j *jobRunner) loopOnce() bool {
 		return false
 
 	case <-j.ticker:
-		log.Printf("insert jobs %d", len(j.jobs))
+		log.Infof("insert jobs %d", len(j.jobs))
 		j.insertJobs(j.jobs)
 
 	case jobs := <-j.update:
-		log.Printf("update jobs %d", len(jobs))
+		log.Infof("update jobs %d", len(jobs))
 		j.jobs = jobs
 
 	// job success
@@ -200,18 +203,18 @@ func (j *jobRunner) invokeJob(meta sauron.JobMeta) error {
 	// invoke a goroutine to run jobs parallelly
 	go func() {
 		if err := eng.Run(); err != nil {
-			log.Printf("execute %s fail, err:%v", meta.JobID, err)
+			log.Errorf("execute %s fail, err:%v", meta.JobID, err)
 			j.fail <- meta
 			return
 		}
-		log.Printf("execute %s success", meta.JobID)
+		log.Infof("execute %s success", meta.JobID)
 		j.success <- meta
 	}()
 	return nil
 }
 
 func (j *jobRunner) sendEvent(jobID string, code sauron.EventCode) {
-	log.Println("send event jobID:%s, code:%v", jobID, code)
+	log.Infof("send event jobID:%s, code:%v", jobID, code)
 	j.events <- sauron.JobEvent{
 		JobID: jobID,
 		Code:  code,

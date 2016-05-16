@@ -3,16 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+
 	"math/rand"
 	"strings"
 	"time"
 
 	elastic "gopkg.in/olivere/elastic.v3"
 
+	"straas.io/base/logger"
+	"straas.io/base/timeutil"
 	"straas.io/sauron"
 	"straas.io/sauron/core"
-	"straas.io/sauron/util"
 	// plugins
 	"straas.io/sauron/plugin/metric"
 )
@@ -21,6 +22,7 @@ var (
 	dryRun       = flag.Bool("dryRun", false, "dryrun mode")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
 	esHosts      = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
+	log          = logger.Get()
 )
 
 func init() {
@@ -32,7 +34,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	clock := util.NewRealClock()
+	clock := timeutil.NewRealClock()
 
 	// create es client
 	esClient, err := elastic.NewClient(
@@ -81,7 +83,7 @@ func main() {
 
 	// runnerID
 	runnerID := fmt.Sprintf("RN%d", rand.Int63())
-	log.Printf("Sauron runner id %s", runnerID)
+	log.Infof("Sauron runner id %s", runnerID)
 
 	// create runner
 	runner := core.NewJobRunner(
@@ -95,12 +97,12 @@ func main() {
 	)
 
 	runner.Start()
-	log.Println("start to run jobs")
+	log.Info("start to run jobs")
 
 	// TODO: better handling (slack)
 	go func() {
 		for e := range runner.Events() {
-			fmt.Println("runner event %v", e)
+			log.Errorf("runner event %v", e)
 		}
 	}()
 

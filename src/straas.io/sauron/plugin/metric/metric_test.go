@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/suite"
 	elastic "gopkg.in/olivere/elastic.v3"
 
+	"straas.io/base/timeutil"
 	"straas.io/sauron"
 	"straas.io/sauron/mocks"
-	"straas.io/sauron/util"
 )
 
 const (
@@ -74,11 +74,11 @@ func TestMetricSuite(t *testing.T) {
 type metricTestSuite struct {
 	suite.Suite
 	plugin *metricQueryPlugin
-	clock  util.FakeClock
+	clock  timeutil.FakeClock
 }
 
 func (s *metricTestSuite) SetupTest() {
-	s.clock = util.NewFakeClock()
+	s.clock = timeutil.NewFakeClock()
 	s.plugin = &metricQueryPlugin{
 		clock: s.clock,
 	}

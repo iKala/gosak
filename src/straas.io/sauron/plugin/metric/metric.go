@@ -8,6 +8,7 @@ import (
 
 	elastic "gopkg.in/olivere/elastic.v3"
 
+	"straas.io/base/timeutil"
 	"straas.io/sauron"
 )
 
@@ -25,7 +26,7 @@ var (
 )
 
 // NewQuery create a metric query plugin
-func NewQuery(client *elastic.Client, clock sauron.Clock) sauron.Plugin {
+func NewQuery(client *elastic.Client, clock timeutil.Clock) sauron.Plugin {
 	return &metricQueryPlugin{
 		client: client,
 		clock:  clock,
@@ -35,7 +36,7 @@ func NewQuery(client *elastic.Client, clock sauron.Clock) sauron.Plugin {
 // TODO: leverage LUR cache for better performance
 type metricQueryPlugin struct {
 	client *elastic.Client
-	clock  sauron.Clock
+	clock  timeutil.Clock
 }
 
 func (p *metricQueryPlugin) Name() string {

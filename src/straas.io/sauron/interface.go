@@ -70,17 +70,6 @@ type Engine interface {
 	Run() error
 }
 
-// CacheGenerator defines a cache item generator
-type CacheGenerator func() (interface{}, error)
-
-// Cache is the abstract interface for local cache
-type LocalCache interface {
-	// Get returns data from store or generates
-	// new one if cache miss or expired
-	Get(ns, key string, ttl time.Duration,
-		gen CacheGenerator) (interface{}, error)
-}
-
 // Store is the abstract interface for status store
 type Store interface {
 	// Get returns data from store.
@@ -115,12 +104,4 @@ type JobRunner interface {
 type Config interface {
 	LoadJobs() ([]JobMeta, error)
 	LoadConfig(key string, v interface{}) error
-}
-
-// Clock defines an interface for clock
-// The purpose of this interface is to create an abstract
-// layer to easy testing with time
-type Clock interface {
-	// Now returns the current time
-	Now() time.Time
 }
