@@ -85,6 +85,20 @@ func (_m *PluginContext) ArgLen() int {
 	return r0
 }
 
+// ArgObject provides a mock function with given fields: i, v
+func (_m *PluginContext) ArgObject(i int, v interface{}) error {
+	ret := _m.Called(i, v)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int, interface{}) error); ok {
+		r0 = rf(i, v)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ArgString provides a mock function with given fields: i
 func (_m *PluginContext) ArgString(i int) (string, error) {
 	ret := _m.Called(i)
@@ -127,6 +141,20 @@ func (_m *PluginContext) CallFunction(i int, args ...interface{}) (interface{}, 
 	}
 
 	return r0, r1
+}
+
+// IsCallable provides a mock function with given fields: i
+func (_m *PluginContext) IsCallable(i int) bool {
+	ret := _m.Called(i)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(int) bool); ok {
+		r0 = rf(i)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
 }
 
 // JobMeta provides a mock function with given fields:

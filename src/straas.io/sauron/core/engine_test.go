@@ -223,7 +223,25 @@ func (s *contextTestSuite) TestString() {
 	s.run(`test("xxxx", 'yyy', 33)`)
 }
 
-func (s *contextTestSuite) TestFunc() {
+type testStruct struct {
+	MyName string
+	MyAge  int64
+}
+
+func (s *contextTestSuite) TestObject() {
+	s.check = func(ctx *contextImpl) {
+		v := &testStruct{}
+		err := ctx.ArgObject(0, v)
+		s.NoError(err)
+		s.Equal(v, &testStruct{
+			MyName: "name1",
+			MyAge:  10,
+		})
+	}
+	s.run(`test({"MyName":"name1", "MyAge": 10})`)
+}
+
+func (s *contextTestSuite) TestCallFunc() {
 	s.eng.vm.Set("double", func(call otto.FunctionCall) otto.Value {
 		f, _ := call.Argument(0).ToFloat()
 		v, _ := otto.ToValue(f * 2)
@@ -266,6 +284,14 @@ func (s *contextTestSuite) TestFuncReturn() {
 	}
 	s.run(`test()(3.3)`)
 	s.True(called)
+}
+
+func (s *contextTestSuite) TestIsCallable() {
+	s.check = func(ctx *contextImpl) {
+		s.True(ctx.IsCallable(0))
+		s.False(ctx.IsCallable(1))
+	}
+	s.run(`test(console.log, "xxx")`)
 }
 
 func (s *contextTestSuite) run(exp string) {

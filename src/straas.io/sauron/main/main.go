@@ -82,6 +82,7 @@ func main() {
 	// list all plugin
 	plugins := []sauron.Plugin{
 		alert.NewLastFor(clock),
+		alert.NewAlert(clock),
 		metric.NewQuery(esClient, clock),
 	}
 

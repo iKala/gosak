@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/robertkrimen/otto"
 
@@ -10,6 +11,10 @@ import (
 
 const (
 	dummyStatement = `1==1;`
+)
+
+var (
+	emptyValue = reflect.Value{}
 )
 
 // NewEngine creates an instance of engine
@@ -161,6 +166,21 @@ func (c *contextImpl) ArgString(i int) (string, error) {
 	return arg.ToString()
 }
 
+func (c *contextImpl) ArgObject(i int, v interface{}) error {
+	arg, err := c.getArg(i)
+	if err != nil {
+		return err
+	}
+	if !arg.IsObject() {
+		return fmt.Errorf("arg %d is not an object", i)
+	}
+	vm, err := arg.Export()
+	if err != nil {
+		return err
+	}
+	return valueToObject(vm, v)
+}
+
 func (c *contextImpl) CallFunction(i int, args ...interface{}) (interface{}, error) {
 	arg, err := c.getArg(i)
 	if err != nil {
@@ -175,6 +195,14 @@ func (c *contextImpl) CallFunction(i int, args ...interface{}) (interface{}, err
 		return nil, err
 	}
 	return result.Export()
+}
+
+func (c *contextImpl) IsCallable(i int) bool {
+	arg, err := c.getArg(i)
+	if err != nil {
+		return false
+	}
+	return arg.IsFunction()
 }
 
 func (c *contextImpl) ArgLen() int {
@@ -201,4 +229,20 @@ func (c *contextImpl) getArg(i int) (otto.Value, error) {
 		return otto.Value{}, fmt.Errorf("index %d out of bound", i)
 	}
 	return c.call.Argument(i), nil
+}
+
+func valueToObject(vm interface{}, obj interface{}) error {
+	m, ok := vm.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("fail to convert object to map, %+v", vm)
+	}
+	t := reflect.ValueOf(obj).Elem()
+	for k, v := range m {
+		val := t.FieldByName(k)
+		if val == emptyValue {
+			return fmt.Errorf("unable to find field %s", k)
+		}
+		val.Set(reflect.ValueOf(v))
+	}
+	return nil
 }

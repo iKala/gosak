@@ -43,8 +43,12 @@ type PluginContext interface {
 	ArgString(i int) (string, error)
 	// ArgBoolean return the ith boolean arguments of the plugin
 	ArgBoolean(i int) (bool, error)
+	// ArgObject return the ith object argument of the plugin
+	ArgObject(i int, v interface{}) error
 	// CallFunction calls the ith arguments of the plugin as a javascript function
 	CallFunction(i int, args ...interface{}) (interface{}, error)
+	// IsCallable check if the ith argument is a function or not
+	IsCallable(i int) bool
 	// ArgLen return the number of arguments of the plugin
 	ArgLen() int
 	// Return sets the return value of the plugin

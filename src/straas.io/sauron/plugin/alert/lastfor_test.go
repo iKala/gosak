@@ -144,38 +144,54 @@ func (s *lastforTestSuite) TestIllegalInput() {
 
 func (s *lastforTestSuite) TestBool() {
 	s.NoError(s.run(`
-		a = lastFor(true, "0s")("xxx")
+		r = lastFor(true, "0s")("xxx")
+		a = r.Desc
+		b = r.Trigger
 	`))
-	v, _ := s.eng.Get("a")
+	v1, _ := s.eng.Get("a")
+	v2, _ := s.eng.Get("b")
 
-	s.Equal("xxx matched", v)
+	s.Equal("xxx matched", v1)
+	s.Equal(true, v2)
 }
 
 func (s *lastforTestSuite) TestBoolNotMatched() {
 	s.NoError(s.run(`
-		a = lastFor(7 < 5, "0s")("xxx")
+		r = lastFor(7 < 5, "0s")("xxx")
+		a = r.Desc
+		b = r.Trigger
 	`))
-	v, _ := s.eng.Get("a")
+	v1, _ := s.eng.Get("a")
+	v2, _ := s.eng.Get("b")
 
-	s.Equal("", v)
+	s.Equal("xxx unmatched", v1)
+	s.Equal(false, v2)
 }
 
 func (s *lastforTestSuite) TestComparsion() {
 	s.NoError(s.run(`
-		a = lastFor(4.2, ">=", 3.3, "0s")("xxx")
+		r = lastFor(4.2, ">=", 3.3, "0s")("xxx")
+		a = r.Desc
+		b = r.Trigger
 	`))
-	v, _ := s.eng.Get("a")
+	v1, _ := s.eng.Get("a")
+	v2, _ := s.eng.Get("b")
 
-	s.Equal("xxx 4.200000 >= 3.300000", v)
+	s.Equal("xxx 4.200000 >= 3.300000", v1)
+	s.Equal(true, v2)
 }
 
 func (s *lastforTestSuite) TestComparsionNotMatched() {
 	s.NoError(s.run(`
-		a = lastFor(7, "<", 5, "0s")("xxx")
+		r = lastFor(7, "<", 5, "0s")("xxx")
+		a = r.Desc
+		b = r.Trigger
 	`))
-	v, _ := s.eng.Get("a")
+	v1, _ := s.eng.Get("a")
+	v2, _ := s.eng.Get("b")
 
-	s.Equal("", v)
+	s.Equal("xxx 7.000000 < 5.000000", v1)
+	s.Equal(false, v2)
 }
 
 func (s *lastforTestSuite) run(script string) error {

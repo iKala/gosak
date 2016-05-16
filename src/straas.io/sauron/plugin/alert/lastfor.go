@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	lastForNS = "alert"
+	lastForNS = "plugin-lastfor"
 )
 
 /*
@@ -20,12 +20,16 @@ lastfor allow two kinds of operations:
 
 alert(
   "cpu,                             // name
-  "check if cpu too busy",          // desc
   notify("frontend", "backend"),    // action
   lastFor(expression, "3m"),        // P0
   lastFor(v1, "op", v2, "3m")       // P1
 )
 */
+
+type LastForResult struct {
+	Trigger bool
+	Desc    string
+}
 
 // NewLastFor creates lastfor plugin
 func NewLastFor(clock timeutil.Clock) sauron.Plugin {
@@ -71,7 +75,11 @@ func (p *lastForPlugin) runBool(ctx sauron.PluginContext) error {
 	if err != nil {
 		return err
 	}
-	return p.lastFor(matched, dur, "matched", ctx)
+	term := "matched"
+	if !matched {
+		term = "unmatched"
+	}
+	return p.lastFor(matched, dur, term, ctx)
 }
 
 // runCompare runs with a compare expression (2 float and one operator)
@@ -131,12 +139,11 @@ func (p *lastForPlugin) lastFor(matched bool, dur time.Duration, term string,
 		if err := cbctx.Store().Update(lastForNS, key, info, updater); err != nil {
 			return err
 		}
-
-		if trigger {
-			cbctx.Return(fmt.Sprintf("%s %s", key, term))
-		} else {
-			cbctx.Return("")
-		}
+		// return a JSON
+		cbctx.Return(&LastForResult{
+			Trigger: trigger,
+			Desc:    fmt.Sprintf("%s %s", key, term),
+		})
 		return nil
 	}
 
