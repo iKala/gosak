@@ -90,6 +90,7 @@ func (e *engineImpl) haltVM(err error) {
 // contextImpl implements Context
 type contextImpl struct {
 	meta     sauron.JobMeta
+	store    sauron.Store
 	call     otto.FunctionCall
 	rtnValue interface{}
 }
@@ -142,6 +143,25 @@ func (c *contextImpl) ArgString(i int) (string, error) {
 	return arg.ToString()
 }
 
+func (c *contextImpl) ArgFunction(i int) (sauron.ArgFunc, error) {
+	arg, err := c.getArg(i)
+	if err != nil {
+		return nil, err
+	}
+	if !arg.IsFunction() {
+		return nil, fmt.Errorf("arg %d is not a function", i)
+	}
+	this := otto.Value{}
+	// conver to func type
+	return func(args ...interface{}) (interface{}, error) {
+		result, err := arg.Call(this, args...)
+		if err != nil {
+			return nil, err
+		}
+		return result.Export()
+	}, nil
+}
+
 func (c *contextImpl) ArgLen() int {
 	return len(c.call.ArgumentList)
 }
@@ -150,6 +170,10 @@ func (c *contextImpl) Return(v interface{}) error {
 	// TODO: check invlid return
 	c.rtnValue = v
 	return nil
+}
+
+func (c *contextImpl) Store() sauron.Store {
+	return c.store
 }
 
 func (c *contextImpl) getArg(i int) (otto.Value, error) {

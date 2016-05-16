@@ -50,6 +50,29 @@ func (_m *PluginContext) ArgFloat(i int) (float64, error) {
 	return r0, r1
 }
 
+// ArgFunction provides a mock function with given fields: i
+func (_m *PluginContext) ArgFunction(i int) (sauron.ArgFunc, error) {
+	ret := _m.Called(i)
+
+	var r0 sauron.ArgFunc
+	if rf, ok := ret.Get(0).(func(int) sauron.ArgFunc); ok {
+		r0 = rf(i)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(sauron.ArgFunc)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(i)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ArgInt provides a mock function with given fields: i
 func (_m *PluginContext) ArgInt(i int) (int64, error) {
 	ret := _m.Called(i)
@@ -129,6 +152,22 @@ func (_m *PluginContext) Return(v interface{}) error {
 		r0 = rf(v)
 	} else {
 		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Store provides a mock function with given fields:
+func (_m *PluginContext) Store() sauron.Store {
+	ret := _m.Called()
+
+	var r0 sauron.Store
+	if rf, ok := ret.Get(0).(func() sauron.Store); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(sauron.Store)
+		}
 	}
 
 	return r0

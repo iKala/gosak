@@ -152,8 +152,7 @@ func (s *contextTestSuite) TestBool() {
 		_, err = ctx.ArgBoolean(3)
 		s.Error(err)
 	}
-	s.vm.Run(`test(true, false, "xxx")`)
-	s.True(s.called)
+	s.run(`test(true, false, "xxx")`)
 }
 
 func (s *contextTestSuite) TestInt() {
@@ -176,8 +175,7 @@ func (s *contextTestSuite) TestInt() {
 		_, err = ctx.ArgInt(4)
 		s.Error(err)
 	}
-	s.vm.Run(`test(10, -3, 5.5, "xxx")`)
-	s.True(s.called)
+	s.run(`test(10, -3, 5.5, "xxx")`)
 }
 
 func (s *contextTestSuite) TestFloat() {
@@ -196,8 +194,7 @@ func (s *contextTestSuite) TestFloat() {
 		_, err = ctx.ArgFloat(3)
 		s.Error(err)
 	}
-	s.vm.Run(`test(3.3, -4, "xxx")`)
-	s.True(s.called)
+	s.run(`test(3.3, -4, "xxx")`)
 }
 
 func (s *contextTestSuite) TestString() {
@@ -216,16 +213,33 @@ func (s *contextTestSuite) TestString() {
 		_, err = ctx.ArgString(3)
 		s.Error(err)
 	}
-	s.vm.Run(`test("xxxx", 'yyy', 33)`)
-	s.True(s.called)
+	s.run(`test("xxxx", 'yyy', 33)`)
+}
+
+func (s *contextTestSuite) TestFunc() {
+	s.vm.Set("double", func(call otto.FunctionCall) otto.Value {
+		f, _ := call.Argument(0).ToFloat()
+		v, _ := otto.ToValue(f * 2)
+		return v
+	})
+
+	s.check = func(ctx *contextImpl) {
+		f, err := ctx.ArgFunction(0)
+		s.NoError(err)
+
+		v, err := f(3.3)
+		fmt.Println(v)
+		s.NoError(err)
+		s.Equal(v, 6.6)
+	}
+	s.run(`test(double)`)
 }
 
 func (s *contextTestSuite) TestLen() {
 	s.check = func(ctx *contextImpl) {
 		s.Equal(ctx.ArgLen(), 5)
 	}
-	s.vm.Run(`test("xxxx", 'yyy', 33, true, 'x')`)
-	s.True(s.called)
+	s.run(`test("xxxx", 'yyy', 33, true, 'x')`)
 }
 
 func (s *contextTestSuite) TestReturn() {
@@ -233,5 +247,11 @@ func (s *contextTestSuite) TestReturn() {
 		ctx.Return(15)
 		s.Equal(ctx.rtnValue, 15)
 	}
+	s.True(s.called)
+}
+
+func (s *contextTestSuite) run(exp string) {
+	_, err := s.vm.Run(exp)
+	s.NoError(err)
 	s.True(s.called)
 }
