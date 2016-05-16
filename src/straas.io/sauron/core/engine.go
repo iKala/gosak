@@ -13,15 +13,17 @@ const (
 )
 
 // NewEngine creates an instance of engine
-func NewEngine() sauron.Engine {
+func NewEngine(store sauron.Store) sauron.Engine {
 	return &engineImpl{
-		vm: otto.New(),
+		vm:    otto.New(),
+		store: store,
 	}
 }
 
 type engineImpl struct {
-	vm   *otto.Otto
-	meta sauron.JobMeta
+	vm    *otto.Otto
+	store sauron.Store
+	meta  sauron.JobMeta
 }
 
 func (e *engineImpl) SetJobMeta(meta sauron.JobMeta) error {
@@ -52,13 +54,30 @@ func (e *engineImpl) Run() (err error) {
 	return err
 }
 
+func (e *engineImpl) Get(name string) (interface{}, error) {
+	v, err := e.vm.Get(name)
+	if err != nil {
+		return nil, err
+	}
+	return v.Export()
+}
+
+func (e *engineImpl) Set(name string, v interface{}) error {
+	value, err := e.vm.ToValue(v)
+	if err != nil {
+		return err
+	}
+	return e.vm.Set(name, value)
+}
+
 // makeOttoFunc wrap plugin by otto
 func (e *engineImpl) makeOttoFunc(run func(sauron.PluginContext) error) func(call otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		// prepare context
 		ctx := &contextImpl{
-			call: call,
-			eng:  e,
+			call:  call,
+			eng:   e,
+			store: e.store,
 		}
 
 		// terminate VM if error occurs
@@ -67,7 +86,6 @@ func (e *engineImpl) makeOttoFunc(run func(sauron.PluginContext) error) func(cal
 			e.haltVM(err)
 			return otto.Value{}
 		}
-
 		result, err := e.vm.ToValue(ctx.rtnValue)
 		if err != nil {
 			// halt

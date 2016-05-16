@@ -22,6 +22,29 @@ func (_m *Engine) AddPlugin(p sauron.Plugin) error {
 	return r0
 }
 
+// Get provides a mock function with given fields: _a0
+func (_m *Engine) Get(_a0 string) (interface{}, error) {
+	ret := _m.Called(_a0)
+
+	var r0 interface{}
+	if rf, ok := ret.Get(0).(func(string) interface{}); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(interface{})
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Run provides a mock function with given fields:
 func (_m *Engine) Run() error {
 	ret := _m.Called()
@@ -29,6 +52,20 @@ func (_m *Engine) Run() error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Set provides a mock function with given fields: _a0, _a1
+func (_m *Engine) Set(_a0 string, _a1 interface{}) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, interface{}) error); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -41,7 +41,8 @@ func (t *testPlugin) HelpMsg() string {
 }
 
 func (s *engineTestSuite) SetupTest() {
-	s.eng = NewEngine()
+	store, _ := NewStore()
+	s.eng = NewEngine(store)
 }
 
 func (s *engineTestSuite) TestPlugins() {
@@ -137,7 +138,8 @@ func (s *contextTestSuite) SetupTest() {
 			return nil
 		},
 	}
-	s.eng = NewEngine().(*engineImpl)
+	store, _ := NewStore()
+	s.eng = NewEngine(store).(*engineImpl)
 	s.eng.AddPlugin(p)
 }
 

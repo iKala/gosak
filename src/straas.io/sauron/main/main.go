@@ -15,6 +15,7 @@ import (
 	"straas.io/sauron"
 	"straas.io/sauron/core"
 	// plugins
+	"straas.io/sauron/plugin/alert"
 	"straas.io/sauron/plugin/metric"
 )
 
@@ -63,7 +64,9 @@ func main() {
 	}
 
 	// prepare engine factory
-	engFactory := core.NewEngine
+	engFactory := func() sauron.Engine {
+		return core.NewEngine(statusStore)
+	}
 	// read jobs
 	jobs := []sauron.JobMeta{
 		sauron.JobMeta{
@@ -78,6 +81,7 @@ func main() {
 	}
 	// list all plugin
 	plugins := []sauron.Plugin{
+		alert.NewLastFor(clock),
 		metric.NewQuery(esClient, clock),
 	}
 

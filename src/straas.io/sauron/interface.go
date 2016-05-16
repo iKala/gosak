@@ -74,6 +74,10 @@ type Engine interface {
 	AddPlugin(p Plugin) error
 	// Run runs the engine with script in JobMeta
 	Run() error
+	// Get get the variable from vm
+	Get(string) (interface{}, error)
+	// Set set a variable to vm
+	Set(string, interface{}) error
 }
 
 // Store is the abstract interface for status store
