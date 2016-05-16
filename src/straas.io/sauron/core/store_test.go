@@ -38,6 +38,65 @@ func (s *storeTestSuite) TestGetSet() {
 	s.Equal(v, v1)
 }
 
+func (s *storeTestSuite) TestUpdate() {
+	v1 := &testData{Name: "v1"}
+	v2 := &testData{Name: "v2"}
+
+	err := s.store.Set("ns1", "key", v1)
+	s.NoError(err)
+
+	action := func(v interface{}) (interface{}, error) {
+		s.Equal(v, v1)
+		return v2, nil
+	}
+
+	v := &testData{}
+	err = s.store.Update("ns1", "key", v, action)
+	s.NoError(err)
+
+	v = &testData{}
+	_, err = s.store.Get("ns1", "key", v)
+	s.NoError(err)
+	s.Equal(v, v2)
+}
+
+func (s *storeTestSuite) TestUpdateWithNoData() {
+	v1 := &testData{Name: "v2"}
+	action := func(v interface{}) (interface{}, error) {
+		s.Nil(v)
+		return v1, nil
+	}
+	v := &testData{}
+	err := s.store.Update("ns1", "key", v, action)
+	s.NoError(err)
+
+	v = &testData{}
+	_, err = s.store.Get("ns1", "key", v)
+	s.NoError(err)
+	s.Equal(v, v1)
+}
+
+func (s *storeTestSuite) TestUpdateNoUpdate() {
+	v1 := &testData{Name: "v1"}
+
+	err := s.store.Set("ns1", "key", v1)
+	s.NoError(err)
+
+	action := func(v interface{}) (interface{}, error) {
+		s.Equal(v, v1)
+		return nil, nil
+	}
+
+	v := &testData{}
+	err = s.store.Update("ns1", "key", v, action)
+	s.NoError(err)
+
+	v = &testData{}
+	_, err = s.store.Get("ns1", "key", v)
+	s.NoError(err)
+	s.Equal(v, v1)
+}
+
 func (s *storeTestSuite) TestNotFound() {
 	v := &testData{}
 	ok, err := s.store.Get("ns1", "key", v)

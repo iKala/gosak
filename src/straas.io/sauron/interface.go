@@ -28,8 +28,7 @@ type JobMeta struct {
 	DryRun bool
 }
 
-// ArgFunc abstracts function arguments of PluginContext
-type ArgFunc func(args ...interface{}) (interface{}, error)
+type FuncReturn func(ctx PluginContext) error
 
 // PluginContext defines an interface for plugin to communicate
 // with engine and job
@@ -44,8 +43,8 @@ type PluginContext interface {
 	ArgString(i int) (string, error)
 	// ArgBoolean return the ith boolean arguments of the plugin
 	ArgBoolean(i int) (bool, error)
-	// ArgFunction return the ith javascript func arguments of the plugin
-	ArgFunction(i int) (ArgFunc, error)
+	// CallFunction calls the ith arguments of the plugin as a javascript function
+	CallFunction(i int, args ...interface{}) (interface{}, error)
 	// ArgLen return the number of arguments of the plugin
 	ArgLen() int
 	// Return sets the return value of the plugin
@@ -83,6 +82,9 @@ type Store interface {
 	Get(ns, key string, v interface{}) (bool, error)
 	// Set puts data into store
 	Set(ns, key string, v interface{}) error
+	// Update updates data in store
+	Update(ns, key string, v interface{},
+		action func(interface{}) (interface{}, error)) error
 }
 
 // JobEvent define the JobRunner events

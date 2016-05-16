@@ -41,3 +41,17 @@ func (_m *Store) Set(ns string, key string, v interface{}) error {
 
 	return r0
 }
+
+// Update provides a mock function with given fields: ns, key, v, action
+func (_m *Store) Update(ns string, key string, v interface{}, action func(interface{}) (interface{}, error)) error {
+	ret := _m.Called(ns, key, v, action)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, interface{}, func(interface{}) (interface{}, error)) error); ok {
+		r0 = rf(ns, key, v, action)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}

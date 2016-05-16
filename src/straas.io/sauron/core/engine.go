@@ -31,7 +31,7 @@ func (e *engineImpl) SetJobMeta(meta sauron.JobMeta) error {
 
 // register plugin funcs
 func (e *engineImpl) AddPlugin(p sauron.Plugin) error {
-	e.vm.Set(p.Name(), e.makeOttoFunc(p))
+	e.vm.Set(p.Name(), e.makeOttoFunc(p.Run))
 	return nil
 }
 
@@ -53,16 +53,16 @@ func (e *engineImpl) Run() (err error) {
 }
 
 // makeOttoFunc wrap plugin by otto
-func (e *engineImpl) makeOttoFunc(p sauron.Plugin) func(call otto.FunctionCall) otto.Value {
+func (e *engineImpl) makeOttoFunc(run func(sauron.PluginContext) error) func(call otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		// prepare context
 		ctx := &contextImpl{
-			meta: e.meta,
 			call: call,
+			eng:  e,
 		}
 
 		// terminate VM if error occurs
-		if err := p.Run(ctx); err != nil {
+		if err := run(ctx); err != nil {
 			// halt
 			e.haltVM(err)
 			return otto.Value{}
@@ -89,14 +89,14 @@ func (e *engineImpl) haltVM(err error) {
 
 // contextImpl implements Context
 type contextImpl struct {
-	meta     sauron.JobMeta
+	eng      *engineImpl
 	store    sauron.Store
 	call     otto.FunctionCall
 	rtnValue interface{}
 }
 
 func (c *contextImpl) JobMeta() sauron.JobMeta {
-	return c.meta
+	return c.eng.meta
 }
 
 func (c *contextImpl) ArgBoolean(i int) (bool, error) {
@@ -143,7 +143,7 @@ func (c *contextImpl) ArgString(i int) (string, error) {
 	return arg.ToString()
 }
 
-func (c *contextImpl) ArgFunction(i int) (sauron.ArgFunc, error) {
+func (c *contextImpl) CallFunction(i int, args ...interface{}) (interface{}, error) {
 	arg, err := c.getArg(i)
 	if err != nil {
 		return nil, err
@@ -152,14 +152,11 @@ func (c *contextImpl) ArgFunction(i int) (sauron.ArgFunc, error) {
 		return nil, fmt.Errorf("arg %d is not a function", i)
 	}
 	this := otto.Value{}
-	// conver to func type
-	return func(args ...interface{}) (interface{}, error) {
-		result, err := arg.Call(this, args...)
-		if err != nil {
-			return nil, err
-		}
-		return result.Export()
-	}, nil
+	result, err := arg.Call(this, args...)
+	if err != nil {
+		return nil, err
+	}
+	return result.Export()
 }
 
 func (c *contextImpl) ArgLen() int {
@@ -168,6 +165,11 @@ func (c *contextImpl) ArgLen() int {
 
 func (c *contextImpl) Return(v interface{}) error {
 	// TODO: check invlid return
+	// convert to otto func
+	if funcRtn, ok := v.(sauron.FuncReturn); ok {
+		c.rtnValue = c.eng.makeOttoFunc(funcRtn)
+		return nil
+	}
 	c.rtnValue = v
 	return nil
 }

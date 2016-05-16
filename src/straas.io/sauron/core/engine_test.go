@@ -6,6 +6,7 @@ import (
 
 	"github.com/robertkrimen/otto"
 	"github.com/stretchr/testify/suite"
+
 	"straas.io/sauron"
 )
 
@@ -117,23 +118,27 @@ func (s *engineTestSuite) TestIllegalScript() {
 	s.Error(s.eng.Run())
 }
 
+// -----------------------------------------------------------------
+
 type contextTestSuite struct {
 	suite.Suite
-	vm     *otto.Otto
+	eng    *engineImpl
 	called bool
 	check  func(ctx *contextImpl)
 }
 
 func (s *contextTestSuite) SetupTest() {
-	s.vm = otto.New()
-	s.vm.Set("test", func(call otto.FunctionCall) otto.Value {
-		s.called = true
-		ctx := &contextImpl{
-			call: call,
-		}
-		s.check(ctx)
-		return otto.Value{}
-	})
+	s.called = false
+	p := &testPlugin{
+		name: "test",
+		run: func(ctx sauron.PluginContext) error {
+			s.called = true
+			s.check(ctx.(*contextImpl))
+			return nil
+		},
+	}
+	s.eng = NewEngine().(*engineImpl)
+	s.eng.AddPlugin(p)
 }
 
 func (s *contextTestSuite) TestBool() {
@@ -217,18 +222,13 @@ func (s *contextTestSuite) TestString() {
 }
 
 func (s *contextTestSuite) TestFunc() {
-	s.vm.Set("double", func(call otto.FunctionCall) otto.Value {
+	s.eng.vm.Set("double", func(call otto.FunctionCall) otto.Value {
 		f, _ := call.Argument(0).ToFloat()
 		v, _ := otto.ToValue(f * 2)
 		return v
 	})
-
 	s.check = func(ctx *contextImpl) {
-		f, err := ctx.ArgFunction(0)
-		s.NoError(err)
-
-		v, err := f(3.3)
-		fmt.Println(v)
+		v, err := ctx.CallFunction(0, 3.3)
 		s.NoError(err)
 		s.Equal(v, 6.6)
 	}
@@ -247,11 +247,29 @@ func (s *contextTestSuite) TestReturn() {
 		ctx.Return(15)
 		s.Equal(ctx.rtnValue, 15)
 	}
-	s.True(s.called)
+	s.run(`test()`)
+}
+
+func (s *contextTestSuite) TestFuncReturn() {
+	called := false
+	s.check = func(ctx *contextImpl) {
+		f := func(ctx sauron.PluginContext) error {
+			called = true
+			v, err := ctx.ArgFloat(0)
+			s.NoError(err)
+			s.Equal(v, 3.3)
+			return nil
+		}
+		ctx.Return(sauron.FuncReturn(f))
+	}
+	s.run(`test()(3.3)`)
+	s.True(called)
 }
 
 func (s *contextTestSuite) run(exp string) {
-	_, err := s.vm.Run(exp)
-	s.NoError(err)
+	s.eng.SetJobMeta(sauron.JobMeta{
+		Script: exp,
+	})
+	s.NoError(s.eng.Run())
 	s.True(s.called)
 }

@@ -83,33 +83,13 @@ func (c *testContext) loopOnceTimeout() {
 	}
 }
 
-func (s *runnerTestSuite) TestJobStatusStore() {
-	c := newContext(s.T())
-	testJobID := "test-job-id"
-	testStatus := &jobStatus{
-		Running: false,
-		LastRun: 1234,
-	}
-
-	// test no exists jobs
-	status, err := c.runner.ensureJobStatus(testJobID)
-	// got an empty job
-	s.NoError(err)
-	s.Equal(status, &jobStatus{RunnerID: testRunnerID})
-
-	// test set then get
-	c.runner.setJobStatus(testJobID, testStatus)
-	status, err = c.runner.ensureJobStatus(testJobID)
-	s.NoError(err)
-	s.Equal(status, testStatus)
-}
-
 func (s *runnerTestSuite) TestUpdateJobStatus() {
 	c := newContext(s.T())
 	testJobID := "test-job-id"
 	testStatus := &jobStatus{
-		Running: false,
-		LastRun: 1234,
+		Running:  false,
+		LastRun:  1234,
+		RunnerID: testRunnerID,
 	}
 	testChgedStatus := &jobStatus{
 		Running:  true,
@@ -118,7 +98,7 @@ func (s *runnerTestSuite) TestUpdateJobStatus() {
 	}
 
 	called := false
-	c.runner.setJobStatus(testJobID, testStatus)
+	setStatus(c.store, testJobID, testStatus)
 	err := c.runner.updateJobStatus(testJobID, func(status *jobStatus) (*jobStatus, error) {
 		called = true
 		s.Equal(status, testStatus)
@@ -131,7 +111,7 @@ func (s *runnerTestSuite) TestUpdateJobStatus() {
 	s.NoError(err)
 
 	// get changed status
-	status, _ := c.runner.ensureJobStatus(testJobID)
+	status := getStatus(c.store, testJobID)
 	s.Equal(status, testChgedStatus)
 }
 
@@ -139,12 +119,13 @@ func (s *runnerTestSuite) TestUpdateJobStatusNotUpdate() {
 	c := newContext(s.T())
 	testJobID := "test-job-id"
 	testStatus := &jobStatus{
-		Running: false,
-		LastRun: 1234,
+		RunnerID: testRunnerID,
+		Running:  false,
+		LastRun:  1234,
 	}
 
 	called := false
-	c.runner.setJobStatus(testJobID, testStatus)
+	setStatus(c.store, testJobID, testStatus)
 	err := c.runner.updateJobStatus(testJobID, func(status *jobStatus) (*jobStatus, error) {
 		called = true
 		s.Equal(status, testStatus)
@@ -158,7 +139,7 @@ func (s *runnerTestSuite) TestUpdateJobStatusNotUpdate() {
 	s.NoError(err)
 
 	// get changed status
-	status, _ := c.runner.ensureJobStatus(testJobID)
+	status := getStatus(c.store, testJobID)
 	s.Equal(status, testStatus)
 }
 
@@ -166,12 +147,13 @@ func (s *runnerTestSuite) TestUpdateJobStatusError() {
 	c := newContext(s.T())
 	testJobID := "test-job-id"
 	testStatus := &jobStatus{
-		Running: false,
-		LastRun: 1234,
+		Running:  false,
+		LastRun:  1234,
+		RunnerID: testRunnerID,
 	}
 
 	called := false
-	c.runner.setJobStatus(testJobID, testStatus)
+	setStatus(c.store, testJobID, testStatus)
 	err := c.runner.updateJobStatus(testJobID, func(status *jobStatus) (*jobStatus, error) {
 		called = true
 		s.Equal(status, testStatus)
@@ -185,7 +167,7 @@ func (s *runnerTestSuite) TestUpdateJobStatusError() {
 	s.Error(err)
 
 	// get changed status
-	status, _ := c.runner.ensureJobStatus(testJobID)
+	status := getStatus(c.store, testJobID)
 	s.Equal(status, testStatus)
 }
 
@@ -225,7 +207,7 @@ func (s *runnerTestSuite) TestRunJob() {
 	// 3 jobs invoked
 	// all should be running
 	for _, job := range testJobs {
-		status, _ := c.runner.ensureJobStatus(job.JobID)
+		status := getStatus(c.store, job.JobID)
 		s.Equal(status.LastRun, curTime.Unix())
 		s.True(status.Running)
 	}
@@ -244,7 +226,7 @@ func (s *runnerTestSuite) TestRunJob() {
 
 	// all should not running
 	for _, job := range testJobs {
-		status, _ := c.runner.ensureJobStatus(job.JobID)
+		status := getStatus(c.store, job.JobID)
 		s.Equal(status.LastSuccess, curTime.Unix())
 		s.False(status.Running)
 	}
@@ -255,11 +237,11 @@ func (s *runnerTestSuite) TestIgnoreRunJob() {
 	c.runner.Update(testJobs)
 	c.loopOnceTimeout()
 
-	c.runner.setJobStatus(testJobs[0].JobID, &jobStatus{
+	setStatus(c.store, testJobs[0].JobID, &jobStatus{
 		RunnerID: testRunnerID,
 		Running:  true,
 	})
-	c.runner.setJobStatus(testJobs[1].JobID, &jobStatus{
+	setStatus(c.store, testJobs[1].JobID, &jobStatus{
 		LastRun: c.clock.Now().Unix(),
 	})
 
@@ -329,7 +311,7 @@ func (s *runnerTestSuite) TestRunJobError() {
 
 	// all should not running
 	for _, job := range testJobs {
-		status, _ := c.runner.ensureJobStatus(job.JobID)
+		status := getStatus(c.store, job.JobID)
 		s.False(status.Running)
 		if job.JobID == testJobs[2].JobID {
 			s.Equal(status.LastFail, curTime.Unix())
@@ -337,4 +319,17 @@ func (s *runnerTestSuite) TestRunJobError() {
 			s.Equal(status.LastSuccess, curTime.Unix())
 		}
 	}
+}
+
+func setStatus(store sauron.Store, jobID string, status *jobStatus) {
+	store.Set(nsJobRunner, jobID, status)
+}
+
+func getStatus(store sauron.Store, jobID string) *jobStatus {
+	v := &jobStatus{}
+	ok, _ := store.Get(nsJobRunner, jobID, v)
+	if ok {
+		return v
+	}
+	return &jobStatus{}
 }

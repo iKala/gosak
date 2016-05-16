@@ -223,38 +223,13 @@ func (j *jobRunner) sendEvent(jobID string, code sauron.EventCode) {
 
 // updateJobStatus get jobStatus by jobId, process by action and then write back to store
 func (j *jobRunner) updateJobStatus(jobID string, action func(status *jobStatus) (*jobStatus, error)) error {
-	status, err := j.ensureJobStatus(jobID)
-	if err != nil {
-		return err
+	storeAct := func(v interface{}) (interface{}, error) {
+		if v == nil {
+			v = &jobStatus{}
+		}
+		status := v.(*jobStatus)
+		status.RunnerID = j.runnerID
+		return action(status)
 	}
-	status, err = action(status)
-	if err != nil {
-		return err
-	}
-	// ignore update
-	if status == nil {
-		return nil
-	}
-	status.RunnerID = j.runnerID
-	return j.setJobStatus(jobID, status)
-}
-
-// ensureJobStatus gets jobStatus from store or creates one if does not exists
-func (j *jobRunner) ensureJobStatus(jobID string) (*jobStatus, error) {
-	status := &jobStatus{}
-	ok, err := j.store.Get(nsJobRunner, jobID, status)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return &jobStatus{
-			RunnerID: j.runnerID,
-		}, nil
-	}
-	return status, nil
-}
-
-// setJobStatus saves jobStatus back to store
-func (j *jobRunner) setJobStatus(jobID string, status *jobStatus) error {
-	return j.store.Set(nsJobRunner, jobID, status)
+	return j.store.Update(nsJobRunner, jobID, &jobStatus{}, storeAct)
 }
