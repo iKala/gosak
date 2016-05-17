@@ -1,31 +1,70 @@
 package slack
 
-// import (
-// 	"fmt"
-// )
+import (
+	"fmt"
 
-// type slackCfg struct {
-// 	// Url is slack Incoming Webhooks
-// 	Url string `json:"url" yaml:"url"`
-// 	// UserName is message display user name
-// 	UserName string `json:"user_name" yaml:"user_name"`
-// }
+	"github.com/bluele/slack"
 
-// type slackNotifier struct {
-// }
+	"straas.io/base/logger"
+	"straas.io/sauron"
+	"straas.io/sauron/plugin/notification"
+)
 
-// func (s *slackNotifier) Sink(config interface{}, severity Severity,
-// 	recovery bool, desc string) error {
+var (
+	log = logger.Get()
+)
 
-// 	// must success,
-// 	cfg := config.(*slackCfg)
+// NewSlackSinker creates a slack sinker
+func NewSlackSinker() notification.Sinker {
+	return &slackSinker{}
+}
 
-// 	// leverage superagent to send config ?!
-// 	fmt.Println(cfg)
+type slackCfg struct {
+	// Token is slack api token
+	Token string `json:"token" yaml:"token"`
+	// UserName is message display user name
+	UserName string `json:"user_name" yaml:"user_name"`
+	// Channel is the channel name
+	Channel string `json:"channel" yaml:"channel"`
+}
 
-// 	return nil
-// }
+type slackSinker struct {
+}
 
-// func (s *slackNotifier) ConfigFactory() interface{} {
-// 	return &slackCfg{}
-// }
+func (s *slackSinker) Sink(rawConfig interface{}, severity sauron.Severity,
+	recovery bool, desc string) error {
+
+	cfg := rawConfig.(*slackCfg)
+	api := slack.New(cfg.Token)
+
+	channel, err := api.FindChannelByName(cfg.Channel)
+	if err != nil {
+		log.Errorf("Fail to find slack channel: channel:%s, err:%v",
+			cfg.Channel, err)
+		return fmt.Errorf("Fail to find slack channel: channel:%s, err:%v",
+			cfg.Channel, err)
+	}
+
+	// decide color
+	color := "danger"
+	title := "Incident report"
+	if recovery {
+		color = "good"
+		title = "Resolve report"
+	}
+	options := &slack.ChatPostMessageOpt{
+		AsUser:   false,
+		Username: cfg.UserName,
+		Attachments: []*slack.Attachment{
+			&slack.Attachment{
+				Color: color,
+				Title: desc,
+			},
+		},
+	}
+	return api.ChatPostMessage(channel.Id, title, options)
+}
+
+func (s *slackSinker) ConfigFactory() interface{} {
+	return &slackCfg{}
+}

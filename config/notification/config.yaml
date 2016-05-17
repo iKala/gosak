@@ -1,11 +1,9 @@
 groups:
   - name: backend
-    sinks:
+    sinkers:
       - type: slack
-        url: http://localhost:8080
+        token: xoxb-18018736162-pOGrLi9GaD3Vm8tfooE74gnb
         user_name: sauron
+        channel: rd-gcloud
         severity: [0, 1, 2]
-        recovery: [1]
-      - type: pagerduty
-        severity: [0, 1, 2]
-        recovery: [1, 2]
+        recovery: [0, 1, 2]

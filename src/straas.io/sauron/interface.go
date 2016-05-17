@@ -21,15 +21,15 @@ type Severity int
 // JobMeta represents a job
 type JobMeta struct {
 	// JobID is the job ID
-	JobID string
+	JobID string `json:"-" yaml:"-"`
 	// Env is for environment (e.g. prod, staging)
-	Env string
-	// Script is script content
-	Script string
-	// Interval is running interval of the job
-	Interval time.Duration
+	Env string `json:"-" yaml:"-"`
 	// DryRun indicates whether run in dryrun mode
-	DryRun bool
+	DryRun bool `json:"-" yaml:"-"`
+	// Script is script content
+	Script string `json:"script" yaml:"script"`
+	// Interval is running interval of the job
+	Interval time.Duration `json:"interval" yaml:"interval"`
 }
 
 type FuncReturn func(ctx PluginContext) error
@@ -124,7 +124,7 @@ type JobRunner interface {
 // TODO: not implement yet
 type Config interface {
 	// LoadJobs loads jobs of the given env
-	LoadJobs(env string) ([]JobMeta, error)
+	LoadJobs(envs ...string) ([]JobMeta, error)
 	// LoadCOnfig load config of the path
 	LoadConfig(path string, v interface{}) error
 	// AddChangeListener add config change listener

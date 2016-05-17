@@ -22,3 +22,5 @@ import:
   version: cd7d1bbe41066b6c1f19780f895901052150a575
 - package: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
+- package: github.com/bluele/slack
+  version: 5ad82ac42481ca5de6d34e3bcb5de21c0db965c7

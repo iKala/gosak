@@ -18,6 +18,8 @@ import (
 	"straas.io/sauron/plugin/alert"
 	"straas.io/sauron/plugin/metric"
 	"straas.io/sauron/plugin/notification"
+	// notification sinkers
+	"straas.io/sauron/plugin/notification/slack"
 )
 
 var (
@@ -39,7 +41,7 @@ func main() {
 
 	clock := timeutil.NewRealClock()
 
-	cfgMgr, err := core.NewFileConfig(*configRoot)
+	cfgMgr, err := core.NewFileConfig(*configRoot, *dryRun)
 	if err != nil {
 		log.Fatalf("fail to load create config manager, err:%v", err)
 	}
@@ -74,18 +76,16 @@ func main() {
 	engFactory := func() sauron.Engine {
 		return core.NewEngine(statusStore)
 	}
-	// read jobs
-	jobs := []sauron.JobMeta{
-		sauron.JobMeta{
-			JobID:    "aaaaa",
-			Interval: time.Minute,
-			Env:      "*",
-			Script: `
-			a = mquery("revealer-syncer", "syncjob.proc_time", "value", "sum", "15m", "1m");
-			console.log(a);
-			`,
-		},
+
+	jobs, err := cfgMgr.LoadJobs("straas-staging")
+	if err != nil {
+		log.Fatalf("fail to load jobs, err:%v", err)
 	}
+
+	fmt.Println(jobs)
+
+	// register sinker
+	notification.RegisterSinker("slack", slack.NewSlackSinker)
 
 	ntyPlugin, err := notification.NewNotification(cfgMgr)
 	if err != nil {
