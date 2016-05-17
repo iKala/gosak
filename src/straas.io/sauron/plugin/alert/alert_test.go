@@ -44,7 +44,7 @@ func (s *alertTestSuite) SetupTest() {
 		desc, err := ctx.ArgString(2)
 		s.NoError(err)
 		s.notifies = append(s.notifies, []interface{}{
-			Severity(sv), resolve, desc,
+			sauron.Severity(sv), resolve, desc,
 		})
 		return nil
 	}
@@ -67,7 +67,7 @@ func (s *alertTestSuite) TestNormalToP0() {
 	`))
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
-			Severity(0), false,
+			sauron.Severity(0), false,
 			"Incident test-job-id#cpu.P0 10.000000 > 5.000000",
 		},
 	})
@@ -84,7 +84,7 @@ func (s *alertTestSuite) TestNormalToP1() {
 	`))
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
-			Severity(1), false,
+			sauron.Severity(1), false,
 			"Incident test-job-id#cpu.P1 5.000000 > 3.000000",
 		},
 	})
@@ -92,7 +92,7 @@ func (s *alertTestSuite) TestNormalToP1() {
 
 func (s *alertTestSuite) TestP1ToP0() {
 	s.store.Set(alertNS, "test-job-id#cpu", &alertStatus{
-		Severity: Severity(1),
+		Severity: sauron.Severity(1),
 	})
 	s.NoError(s.run(`
 		alert(
@@ -104,7 +104,7 @@ func (s *alertTestSuite) TestP1ToP0() {
 	`))
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
-			Severity(0), false,
+			sauron.Severity(0), false,
 			"Incident test-job-id#cpu.P0 10.000000 > 5.000000",
 		},
 	})
@@ -112,7 +112,7 @@ func (s *alertTestSuite) TestP1ToP0() {
 
 func (s *alertTestSuite) TestP1ToP2() {
 	s.store.Set(alertNS, "test-job-id#cpu", &alertStatus{
-		Severity: Severity(1),
+		Severity: sauron.Severity(1),
 	})
 	s.NoError(s.run(`
 		alert(
@@ -125,11 +125,11 @@ func (s *alertTestSuite) TestP1ToP2() {
 	`))
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
-			Severity(1), true,
+			sauron.Severity(1), true,
 			"Resolve test-job-id#cpu.P1 2.000000 > 3.000000",
 		},
 		[]interface{}{
-			Severity(2), false,
+			sauron.Severity(2), false,
 			"Incident test-job-id#cpu.P2 2.000000 > 1.000000",
 		},
 	})
@@ -137,7 +137,7 @@ func (s *alertTestSuite) TestP1ToP2() {
 
 func (s *alertTestSuite) TestP1ToNormal() {
 	s.store.Set(alertNS, "test-job-id#cpu", &alertStatus{
-		Severity: Severity(1),
+		Severity: sauron.Severity(1),
 	})
 	s.NoError(s.run(`
 		alert(
@@ -150,7 +150,7 @@ func (s *alertTestSuite) TestP1ToNormal() {
 	`))
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
-			Severity(1), true,
+			sauron.Severity(1), true,
 			"Resolve test-job-id#cpu.P1 0.000000 > 3.000000",
 		},
 	})

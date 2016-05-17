@@ -1,0 +1,11 @@
+groups:
+  - name: backend
+    sinks:
+      - type: slack
+        url: http://localhost:8080
+        user_name: sauron
+        severity: [0, 1, 2]
+        recovery: [1]
+      - type: pagerduty
+        severity: [0, 1, 2]
+        recovery: [1, 2]

@@ -17,9 +17,11 @@ import (
 	// plugins
 	"straas.io/sauron/plugin/alert"
 	"straas.io/sauron/plugin/metric"
+	"straas.io/sauron/plugin/notification"
 )
 
 var (
+	configRoot   = flag.String("configRoot", "config/", "config root folder")
 	dryRun       = flag.Bool("dryRun", false, "dryrun mode")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
 	esHosts      = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
@@ -36,6 +38,11 @@ func main() {
 	flag.Parse()
 
 	clock := timeutil.NewRealClock()
+
+	cfgMgr, err := core.NewFileConfig(*configRoot)
+	if err != nil {
+		log.Fatalf("fail to load create config manager, err:%v", err)
+	}
 
 	// create es client
 	esClient, err := elastic.NewClient(
@@ -79,11 +86,18 @@ func main() {
 			`,
 		},
 	}
+
+	ntyPlugin, err := notification.NewNotification(cfgMgr)
+	if err != nil {
+		log.Fatalf("fail to init notification plugin, err:%v", err)
+	}
+
 	// list all plugin
 	plugins := []sauron.Plugin{
 		alert.NewLastFor(clock),
 		alert.NewAlert(clock),
 		metric.NewQuery(esClient, clock),
+		ntyPlugin,
 	}
 
 	// runnerID

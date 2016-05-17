@@ -8,13 +8,18 @@ type Config struct {
 	mock.Mock
 }
 
-// LoadConfig provides a mock function with given fields: key, v
-func (_m *Config) LoadConfig(key string, v interface{}) error {
-	ret := _m.Called(key, v)
+// AddChangeListener provides a mock function with given fields: _a0
+func (_m *Config) AddChangeListener(_a0 func()) {
+	_m.Called(_a0)
+}
+
+// LoadConfig provides a mock function with given fields: path, v
+func (_m *Config) LoadConfig(path string, v interface{}) error {
+	ret := _m.Called(path, v)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, interface{}) error); ok {
-		r0 = rf(key, v)
+		r0 = rf(path, v)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -22,13 +27,13 @@ func (_m *Config) LoadConfig(key string, v interface{}) error {
 	return r0
 }
 
-// LoadJobs provides a mock function with given fields:
-func (_m *Config) LoadJobs() ([]sauron.JobMeta, error) {
-	ret := _m.Called()
+// LoadJobs provides a mock function with given fields: env
+func (_m *Config) LoadJobs(env string) ([]sauron.JobMeta, error) {
+	ret := _m.Called(env)
 
 	var r0 []sauron.JobMeta
-	if rf, ok := ret.Get(0).(func() []sauron.JobMeta); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(string) []sauron.JobMeta); ok {
+		r0 = rf(env)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]sauron.JobMeta)
@@ -36,8 +41,8 @@ func (_m *Config) LoadJobs() ([]sauron.JobMeta, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(env)
 	} else {
 		r1 = ret.Error(1)
 	}

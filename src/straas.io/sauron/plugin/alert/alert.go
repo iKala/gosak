@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	alertNS               = "plugin-alert"
-	minServerity Severity = 0
-	maxServerity Severity = 2
-	normal       Severity = 99
+	alertNS                      = "plugin-alert"
+	minServerity sauron.Severity = 0
+	maxServerity sauron.Severity = 2
+	normal       sauron.Severity = 99
 )
 
 var (
@@ -27,10 +27,6 @@ func NewAlert(clock timeutil.Clock) sauron.Plugin {
 	}
 }
 
-// Severity defines severity level less value more severe
-// a.k.a P0 is the most severe
-type Severity int
-
 type NotifyAction int
 
 type alertPlugin struct {
@@ -39,7 +35,7 @@ type alertPlugin struct {
 
 type alertStatus struct {
 	// p0, p1, p2
-	Severity Severity
+	Severity sauron.Severity
 	// lastNotify is the last notify time in unix ts
 	LastNotify int64
 
@@ -47,10 +43,10 @@ type alertStatus struct {
 }
 
 // notifier performs notification process
-type notifier func(Severity, bool, string) error
+type notifier func(sauron.Severity, bool, string) error
 
 // describer returns the description of the given severity level
-type describer func(Severity) string
+type describer func(sauron.Severity) string
 
 func (p *alertPlugin) Name() string {
 	return "alert"
@@ -96,7 +92,7 @@ func (p *alertPlugin) HelpMsg() string {
 
 func (p *alertPlugin) getNotifier(ctx sauron.PluginContext) notifier {
 	// TODO: need better error handling
-	return func(s Severity, resolve bool, desc string) error {
+	return func(s sauron.Severity, resolve bool, desc string) error {
 		if _, err := ctx.CallFunction(1, int(s), resolve, desc); err != nil {
 			return err
 		}
@@ -104,7 +100,7 @@ func (p *alertPlugin) getNotifier(ctx sauron.PluginContext) notifier {
 	}
 }
 
-func (p *alertPlugin) getUpdater(severity Severity, descber describer,
+func (p *alertPlugin) getUpdater(severity sauron.Severity, descber describer,
 	notify notifier) func(v interface{}) (interface{}, error) {
 
 	return func(v interface{}) (interface{}, error) {
@@ -174,7 +170,7 @@ func (p *alertPlugin) getUpdater(severity Severity, descber describer,
 }
 
 // severeThan returns whether the severity level of s1 is greater than s2
-func severeThan(s1, s2 Severity) bool {
+func severeThan(s1, s2 sauron.Severity) bool {
 	return s1 < s2
 }
 
@@ -184,11 +180,11 @@ func alertKey(jobID, name string) string {
 }
 
 // lastforKey returns the key for lastfor
-func lastforKey(jobID, name string, severity Severity) string {
+func lastforKey(jobID, name string, severity sauron.Severity) string {
 	return fmt.Sprintf("%s.P%d", alertKey(jobID, name), severity)
 }
 
-func getSeverity(ctx sauron.PluginContext, name string) (Severity, describer, error) {
+func getSeverity(ctx sauron.PluginContext, name string) (sauron.Severity, describer, error) {
 	descs := []string{}
 	targetSeverity := normal
 
@@ -213,7 +209,7 @@ func getSeverity(ctx sauron.PluginContext, name string) (Severity, describer, er
 		}
 	}
 	// prepare describer
-	descber := func(sv Severity) string {
+	descber := func(sv sauron.Severity) string {
 		i := int(sv)
 		if i >= 0 && i < len(descs) {
 			return descs[i]

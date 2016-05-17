@@ -14,6 +14,10 @@ const (
 // EventCode is type of job event code reported by JobRunner
 type EventCode int32
 
+// Severity defines severity level less value more severe
+// a.k.a P0 is the most severe
+type Severity int
+
 // JobMeta represents a job
 type JobMeta struct {
 	// JobID is the job ID
@@ -119,6 +123,10 @@ type JobRunner interface {
 // Config manages the config
 // TODO: not implement yet
 type Config interface {
-	LoadJobs() ([]JobMeta, error)
-	LoadConfig(key string, v interface{}) error
+	// LoadJobs loads jobs of the given env
+	LoadJobs(env string) ([]JobMeta, error)
+	// LoadCOnfig load config of the path
+	LoadConfig(path string, v interface{}) error
+	// AddChangeListener add config change listener
+	AddChangeListener(func())
 }
