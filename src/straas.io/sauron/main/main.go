@@ -25,6 +25,7 @@ import (
 var (
 	configRoot   = flag.String("configRoot", "config/", "config root folder")
 	dryRun       = flag.Bool("dryRun", false, "dryrun mode")
+	envStr       = flag.String("envs", "", "environments separated by comma")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
 	esHosts      = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
 	log          = logger.Get()
@@ -40,6 +41,9 @@ func main() {
 	flag.Parse()
 
 	clock := timeutil.NewRealClock()
+
+	// parse environemnts
+	envs := strings.Split(*envStr, ",")
 
 	cfgMgr, err := core.NewFileConfig(*configRoot, *dryRun)
 	if err != nil {
@@ -77,12 +81,11 @@ func main() {
 		return core.NewEngine(statusStore)
 	}
 
-	jobs, err := cfgMgr.LoadJobs("straas-staging")
+	// load jobs
+	jobs, err := cfgMgr.LoadJobs(envs...)
 	if err != nil {
 		log.Fatalf("fail to load jobs, err:%v", err)
 	}
-
-	fmt.Println(jobs)
 
 	// register sinker
 	notification.RegisterSinker("slack", slack.NewSlackSinker)
