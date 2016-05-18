@@ -28,7 +28,7 @@ func (s *lastforTestSuite) SetupTest() {
 		clock: s.clock,
 	}
 	store, _ := core.NewStore()
-	s.eng = core.NewEngine(store)
+	s.eng = core.NewEngine(store, core.NewOutput(false))
 	s.eng.AddPlugin(s.plugin)
 }
 

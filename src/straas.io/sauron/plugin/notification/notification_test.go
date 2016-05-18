@@ -47,7 +47,7 @@ type testSinkCfg struct {
 func (s *notificationTestSuite) SetupTest() {
 	s.plugin = &notificationPlugin{}
 	store, _ := core.NewStore()
-	s.eng = core.NewEngine(store)
+	s.eng = core.NewEngine(store, core.NewOutput(false))
 	s.eng.AddPlugin(s.plugin)
 
 	sinkerFac = map[string]SinkerFactory{}

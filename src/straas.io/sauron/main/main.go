@@ -28,6 +28,8 @@ var (
 	envStr       = flag.String("envs", "", "environments separated by comma")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
 	esHosts      = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
+	jobPattern   = flag.String("jobPattern", "", "only run jobs matches the pattern")
+	logLevel     = flag.String("logLevel", "info", "log level")
 	log          = logger.Get()
 )
 
@@ -40,14 +42,20 @@ func init() {
 func main() {
 	flag.Parse()
 
+	if err := logger.SetLevel(*logLevel); err != nil {
+		log.Fatalf("illegal log level %s", *logLevel)
+	}
+
 	clock := timeutil.NewRealClock()
+	output := core.NewOutput(*dryRun)
 
 	// parse environemnts
 	envs := strings.Split(*envStr, ",")
+	log.Info("[main] environemnt", envs)
 
 	cfgMgr, err := core.NewFileConfig(*configRoot, *dryRun)
 	if err != nil {
-		log.Fatalf("fail to load create config manager, err:%v", err)
+		log.Fatalf("[main] fail to load create config manager, err:%v", err)
 	}
 
 	// create es client
@@ -56,13 +64,13 @@ func main() {
 		elastic.SetURL(strings.Split(*esHosts, ",")...),
 		elastic.SetMaxRetries(10))
 	if err != nil {
-		log.Fatalf("fail to creat elasticsearch client, err:%v", err)
+		log.Fatalf("[main] fail to creat elasticsearch client, err:%v", err)
 	}
 
 	// create store
 	statusStore, err := core.NewStore()
 	if err != nil {
-		log.Fatalf("fail to init store, err:%v", err)
+		log.Fatalf("[main] fail to init store, err:%v", err)
 	}
 
 	// prepare ticker
@@ -78,34 +86,40 @@ func main() {
 
 	// prepare engine factory
 	engFactory := func() sauron.Engine {
-		return core.NewEngine(statusStore)
+		return core.NewEngine(statusStore, output)
 	}
 
 	// load jobs
 	jobs, err := cfgMgr.LoadJobs(envs...)
 	if err != nil {
-		log.Fatalf("fail to load jobs, err:%v", err)
+		log.Fatalf("[main] fail to load jobs, err:%v", err)
 	}
 
-	// register sinker
+	// register sinkers
+	// TODO: es insert sinker
+	log.Info("[main] register notification sinkers")
 	notification.RegisterSinker("slack", slack.NewSlackSinker)
 
 	ntyPlugin, err := notification.NewNotification(cfgMgr)
 	if err != nil {
-		log.Fatalf("fail to init notification plugin, err:%v", err)
+		log.Fatalf("[main] fail to init notification plugin, err:%v", err)
 	}
 
 	// list all plugin
+	log.Info("[main] register plugins")
 	plugins := []sauron.Plugin{
 		alert.NewLastFor(clock),
 		alert.NewAlert(clock),
 		metric.NewQuery(esClient, clock),
 		ntyPlugin,
 	}
+	for _, p := range plugins {
+		log.Infof("[main] register plugin %s", p.Name())
+	}
 
 	// runnerID
 	runnerID := fmt.Sprintf("RN%d", rand.Int63())
-	log.Infof("Sauron runner id %s", runnerID)
+	log.Infof("[main] Sauron runner id %s", runnerID)
 
 	// create runner
 	runner := core.NewJobRunner(
@@ -113,23 +127,25 @@ func main() {
 		engFactory,
 		ticker,
 		statusStore,
+		output,
 		jobs,
 		plugins,
 		clock,
 	)
 
 	runner.Start()
-	log.Info("start to run jobs")
+	log.Info("[main] start to run jobs")
 
 	// TODO: better handling (slack)
 	go func() {
 		for e := range runner.Events() {
-			log.Errorf("runner event %v", e)
+			log.Errorf("[main] runner event %v", e)
 		}
 	}()
 
 	// TODO: Leader election for cluster
 	// TODO: add plugin help msg to "go help" message
 	// TODO: listen http for health check
+	// TODO: handle graceful shutdown
 	time.Sleep(time.Minute)
 }

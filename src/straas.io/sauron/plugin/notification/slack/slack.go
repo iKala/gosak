@@ -31,6 +31,10 @@ type slackCfg struct {
 type slackSinker struct {
 }
 
+func (s *slackSinker) Name() string {
+	return "slack"
+}
+
 func (s *slackSinker) Sink(rawConfig interface{}, severity sauron.Severity,
 	recovery bool, desc string) error {
 

@@ -50,7 +50,7 @@ func (s *alertTestSuite) SetupTest() {
 	}
 	s.store, _ = core.NewStore()
 	s.notifies = [][]interface{}{}
-	s.eng = core.NewEngine(s.store)
+	s.eng = core.NewEngine(s.store, core.NewOutput(false))
 	s.eng.AddPlugin(s.plugin)
 	s.eng.AddPlugin(NewLastFor(s.clock))
 	s.eng.AddPlugin(s.notifyPlugin)

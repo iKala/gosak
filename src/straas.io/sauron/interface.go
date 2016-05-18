@@ -37,6 +37,7 @@ type FuncReturn func(ctx PluginContext) error
 // PluginContext defines an interface for plugin to communicate
 // with engine and job
 type PluginContext interface {
+	Output
 	// JobMeta returns the job meta data
 	JobMeta() JobMeta
 	// ArgInt return the ith integer arguments of the plugin
@@ -118,6 +119,12 @@ type JobRunner interface {
 	Update(jobs []JobMeta) error
 	// Events reports noticeable events of the runner
 	Events() <-chan JobEvent
+}
+
+type Output interface {
+	// OutputMsgf printf output important message (for dryrun)
+	Infof(string, ...interface{})
+	Errorf(string, ...interface{})
 }
 
 // Config manages the config

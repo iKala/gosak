@@ -20,14 +20,12 @@ var (
 	reNotifyInterval = flag.Duration("alertReNotify", 30*time.Minute, "alert re-notify interval")
 )
 
-// NewAlert creates lastfor plugin
+// NewAlert creates alert plugin
 func NewAlert(clock timeutil.Clock) sauron.Plugin {
 	return &alertPlugin{
 		clock: clock,
 	}
 }
-
-type NotifyAction int
 
 type alertPlugin struct {
 	clock timeutil.Clock
@@ -38,7 +36,7 @@ type alertStatus struct {
 	Severity sauron.Severity
 	// lastNotify is the last notify time in unix ts
 	LastNotify int64
-
+	// FirstSeen is the first seen time of the alert
 	FirstSeen int64
 }
 

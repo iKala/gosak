@@ -1,15 +1,36 @@
 package logger
 
 import (
+	"time"
+
 	"github.com/Sirupsen/logrus"
 )
 
 var (
-	log = logrus.New()
+	logger = newLogger()
 )
 
 func Get() Logger {
-	return log
+	return logger
+}
+
+func SetLevel(level string) error {
+	lv, err := logrus.ParseLevel(level)
+	if err != nil {
+		return err
+	}
+	logger.Level = lv
+	return nil
+}
+
+func newLogger() *logrus.Logger {
+	logger := logrus.New()
+	logger.Formatter = &logrus.TextFormatter{
+		// DisableColors: true,
+		FullTimestamp:   true,
+		TimestampFormat: time.RFC3339,
+	}
+	return logger
 }
 
 // func AddPrefix(prefix string, Logger) Logger {

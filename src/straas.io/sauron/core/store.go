@@ -30,6 +30,7 @@ type memStoreImpl struct {
 // Linke encoding/json, unmarshal parses the JSON-encoded data and stores the
 // result in the value pointed to by v.
 func (s *memStoreImpl) Get(ns, key string, v interface{}) (bool, error) {
+	log.Debugf("[store] get ns:%s, key:%s", ns, key)
 	data, ok := s.get(ns, key)
 	if !ok {
 		return false, nil
@@ -42,6 +43,7 @@ func (s *memStoreImpl) Get(ns, key string, v interface{}) (bool, error) {
 
 // Set puts data into store
 func (s *memStoreImpl) Set(ns, key string, v interface{}) error {
+	log.Debugf("[store] set ns:%s, key:%s", ns, key)
 	data, err := json.Marshal(v)
 	if err != nil {
 		return err

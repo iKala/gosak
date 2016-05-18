@@ -54,7 +54,7 @@ func newContext(t *testing.T) *testContext {
 	}
 	plugins := []sauron.Plugin{c.plugin1, c.plugin2}
 	c.runner = NewJobRunner(testRunnerID, engFactory, c.ticker,
-		c.store, nil, plugins, c.clock).(*jobRunner)
+		c.store, NewOutput(false), nil, plugins, c.clock).(*jobRunner)
 	return c
 }
 

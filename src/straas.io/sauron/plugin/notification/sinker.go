@@ -11,6 +11,8 @@ type SinkerFactory func() Sinker
 
 // Sinker defines an interface to sink notifiations
 type Sinker interface {
+	// Name return sinker name
+	Name() string
 	// Sink sends notification
 	Sink(config interface{}, severity sauron.Severity, recovery bool, desc string) error
 	// ConfigFactory creates an instance to unmarshal sinker specific config,
@@ -28,7 +30,17 @@ func (g *sinkerGroup) empty() bool {
 	return len(g.sinkers) == 0
 }
 
-func (g *sinkerGroup) sinkAll(severity sauron.Severity, recovery bool, desc string) error {
+func (g *sinkerGroup) sinkAll(dryRun bool, severity sauron.Severity, recovery bool, desc string) error {
+	// for dryrun mode, print is enough
+	if dryRun {
+		for _, s := range g.sinkers {
+			log.Infof("[notification] sink %s(severity:%d, recovery:%v, desc:%s)",
+				s.Name(), severity, recovery, desc)
+
+		}
+		return nil
+	}
+
 	// TODO: keep retry until success or overwrite by later sinks
 	errs := []error{}
 	for i, s := range g.sinkers {

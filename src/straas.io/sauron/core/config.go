@@ -21,11 +21,14 @@ const (
 // NewFileConfig creates a file config loader
 func NewFileConfig(cfgRoot string, dryRun bool) (sauron.Config, error) {
 	// TODO: check existence of root
-
+	futil := &fileUtilImpl{}
+	if !futil.Exist(cfgRoot) {
+		return nil, fmt.Errorf("config root %s does not exist", cfgRoot)
+	}
 	return &fileConfigImpl{
 		cfgRoot: cfgRoot,
 		dryRun:  dryRun,
-		futil:   &fileUtilImpl{},
+		futil:   futil,
 	}, nil
 }
 
@@ -84,6 +87,7 @@ func (c *fileConfigImpl) loadJobs(env string) ([]sauron.JobMeta, error) {
 			return fmt.Errorf("fail to parse file %s, err:%v", path, err)
 		}
 
+		// assign attributes
 		meta.DryRun = c.dryRun
 		meta.Env = env
 		meta.JobID = toJobID(alertRoot, path)

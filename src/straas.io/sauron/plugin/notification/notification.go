@@ -3,11 +3,13 @@ package notification
 import (
 	"fmt"
 
+	"straas.io/base/logger"
 	"straas.io/sauron"
 )
 
 var (
 	sinkerFac = map[string]SinkerFactory{}
+	log       = logger.Get()
 )
 
 // TODO: add logs
@@ -125,7 +127,7 @@ func (p *notificationPlugin) genCallback(info *groupInfo) sauron.FuncReturn {
 		if sgroup.empty() {
 			return fmt.Errorf("no sinkers for severity:%v, resolve:%v", sv, resolve)
 		}
-		if err := sgroup.sinkAll(sv, resolve, desc); err != nil {
+		if err := sgroup.sinkAll(ctx.JobMeta().DryRun, sv, resolve, desc); err != nil {
 			// TODO: log here
 			// Tend to not return error here to affet alert main process
 			// but not sure how to do

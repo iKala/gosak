@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"straas.io/base/logger"
 	"straas.io/base/timeutil"
 	"straas.io/sauron"
 )
@@ -12,18 +13,16 @@ const (
 	lastForNS = "plugin-lastfor"
 )
 
+var (
+	log = logger.Get()
+)
+
 /*
 lastfor returns a callback function to fill with key
 lastfor allow two kinds of operations:
   lastfor(a > 10, "3m")("aaa.bbb.cc")
   lastfor(a, ">", 10, "3m")("aaa.bbb.cc")
 
-alert(
-  "cpu,                             // name
-  notify("frontend", "backend"),    // action
-  lastFor(expression, "3m"),        // P0
-  lastFor(v1, "op", v2, "3m")       // P1
-)
 */
 
 type LastForResult struct {
@@ -58,7 +57,7 @@ func (p *lastForPlugin) Run(ctx sauron.PluginContext) error {
 	if ctx.ArgLen() == 4 {
 		return p.runCompare(ctx)
 	}
-	return fmt.Errorf("number of arguments is 2 or 4")
+	return fmt.Errorf("number of arguments should be 2 or 4")
 }
 
 // runBool runs with a bool value to indicate whether match or not

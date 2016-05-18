@@ -1,9 +1,9 @@
 interval: 5m
 script: |
-  v = mquery("revealer-collector", "rest.s5XX.err", "value", "avg", "5m", "1m")
+  v = 90
   alert(
     "cpu",
     notify("backend"),
-    lastFor(v, ">", 50, "0m"),
-    lastFor(v, ">", 5,  "0m")
+    lastFor(v, ">", 15, "0m"),
+    lastFor(v, ">", 10, "0m", 44)
   )

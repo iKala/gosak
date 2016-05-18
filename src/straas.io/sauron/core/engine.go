@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/robertkrimen/otto"
 
@@ -18,7 +19,7 @@ var (
 )
 
 // NewEngine creates an instance of engine
-func NewEngine(store sauron.Store) sauron.Engine {
+func NewEngine(store sauron.Store, output sauron.Output) sauron.Engine {
 	return &engineImpl{
 		vm:    otto.New(),
 		store: store,
@@ -26,9 +27,12 @@ func NewEngine(store sauron.Store) sauron.Engine {
 }
 
 type engineImpl struct {
-	vm    *otto.Otto
-	store sauron.Store
-	meta  sauron.JobMeta
+	vm     *otto.Otto
+	store  sauron.Store
+	output sauron.Output
+	meta   sauron.JobMeta
+	// using atomic for swap
+	halt int64
 }
 
 func (e *engineImpl) SetJobMeta(meta sauron.JobMeta) error {
@@ -38,7 +42,7 @@ func (e *engineImpl) SetJobMeta(meta sauron.JobMeta) error {
 
 // register plugin funcs
 func (e *engineImpl) AddPlugin(p sauron.Plugin) error {
-	e.vm.Set(p.Name(), e.makeOttoFunc(p.Run))
+	e.vm.Set(p.Name(), e.makeOttoFunc(p.Name(), p.Run))
 	return nil
 }
 
@@ -49,6 +53,9 @@ func (e *engineImpl) Run() (err error) {
 			return
 		}
 	}()
+	log.Infof("[engine] run job, id:%s, env:%s, dryRun:%v",
+		e.meta.JobID, e.meta.Env, e.meta.DryRun)
+
 	// buffered to avoid blocking
 	e.vm.Interrupt = make(chan func(), 1)
 	// TODO: cache compiled script for better performance
@@ -76,19 +83,24 @@ func (e *engineImpl) Set(name string, v interface{}) error {
 }
 
 // makeOttoFunc wrap plugin by otto
-func (e *engineImpl) makeOttoFunc(run func(sauron.PluginContext) error) func(call otto.FunctionCall) otto.Value {
+func (e *engineImpl) makeOttoFunc(name string,
+	run func(sauron.PluginContext) error) func(call otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
+
+		log.Debug("[engine] ", callToString(name, call))
+
 		// prepare context
 		ctx := &contextImpl{
-			call:  call,
-			eng:   e,
-			store: e.store,
+			call:   call,
+			eng:    e,
+			store:  e.store,
+			Output: e.output,
 		}
 
 		// terminate VM if error occurs
 		if err := run(ctx); err != nil {
 			// halt
-			e.haltVM(err)
+			e.haltVM(fmt.Errorf("[%s] %v", name, err))
 			return otto.Value{}
 		}
 		result, err := e.vm.ToValue(ctx.rtnValue)
@@ -103,11 +115,28 @@ func (e *engineImpl) makeOttoFunc(run func(sauron.PluginContext) error) func(cal
 
 func (e *engineImpl) haltVM(err error) {
 	// refer https://github.com/robertkrimen/otto#halting-problem
-	e.vm.Interrupt <- func() {
-		panic(err)
-	}
+	go func() {
+		e.vm.Interrupt <- func() {
+			panic(err)
+		}
+	}()
 	// TODO: need to close Interrupt channel ?!
 	// close(e.vm.Interrupt)
+}
+
+// callToString dumps call arguments as string for logging
+func callToString(name string, call otto.FunctionCall) string {
+	argStr := make([]string, 0, len(call.ArgumentList))
+	for _, v := range call.ArgumentList {
+		if v.IsFunction() {
+			argStr = append(argStr, "<func>")
+			continue
+		}
+		argStr = append(argStr, v.String())
+	}
+
+	return fmt.Sprintf("call %s(%s)", name, strings.Join(argStr, ", "))
+
 }
 
 // contextImpl implements Context
@@ -116,6 +145,7 @@ type contextImpl struct {
 	store    sauron.Store
 	call     otto.FunctionCall
 	rtnValue interface{}
+	sauron.Output
 }
 
 func (c *contextImpl) JobMeta() sauron.JobMeta {
@@ -213,7 +243,7 @@ func (c *contextImpl) Return(v interface{}) error {
 	// TODO: check invlid return
 	// convert to otto func
 	if funcRtn, ok := v.(sauron.FuncReturn); ok {
-		c.rtnValue = c.eng.makeOttoFunc(funcRtn)
+		c.rtnValue = c.eng.makeOttoFunc("<anonymous>", funcRtn)
 		return nil
 	}
 	c.rtnValue = v
