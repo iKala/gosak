@@ -18,6 +18,8 @@ glide install
 2. src/straas.io/base common library
 
 ## Run
+
+manually
 ```
 PROJECT_ROOT=<Sauron project root>
 cd ${PROJECT_ROOT}/src/straas.io/sauron/main
@@ -26,6 +28,20 @@ go run main.go \
   -dryRun \
   -esHosts=http://104.155.238.191:9200 \
   -configRoot=${PROJECT_ROOT}/config \
+```
+
+dryrun script
+```
+PROJECT_ROOT=<Sauron project root>
+cd ${PROJECT_ROOT}
+bash script/run-dryrun.sh straas-staging
+```
+
+run docker script
+```
+PROJECT_ROOT=<Sauron project root>
+cd ${PROJECT_ROOT}
+bash script/run-docker.sh straas-staging
 ```
 
 ## TODO:

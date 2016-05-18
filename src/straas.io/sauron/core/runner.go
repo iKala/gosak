@@ -112,6 +112,18 @@ func (j *jobRunner) Events() <-chan sauron.JobEvent {
 	return j.events
 }
 
+func (j *jobRunner) RunJob(job sauron.JobMeta) error {
+	ch := make(chan sauron.JobMeta)
+	var err error
+	go func() {
+		if err = j.invokeJob(job, ch, ch); err != nil {
+			close(ch)
+		}
+	}()
+	<-ch
+	return err
+}
+
 // insertJobs insert all jobs to queue
 func (j *jobRunner) insertJobs(jobs []sauron.JobMeta) {
 	for _, meta := range jobs {
@@ -133,7 +145,7 @@ func (j *jobRunner) insertJobs(jobs []sauron.JobMeta) {
 				log.Infof("[runner] job %s waits for next round", meta.JobID)
 				return nil, nil
 			}
-			if err := j.invokeJob(meta); err != nil {
+			if err := j.invokeJob(meta, j.success, j.fail); err != nil {
 				log.Errorf("[runner] fail to invoke job %s, err:%v", err)
 				return nil, err
 			}
@@ -194,7 +206,7 @@ func (j *jobRunner) loopOnce() bool {
 	return true
 }
 
-func (j *jobRunner) invokeJob(meta sauron.JobMeta) error {
+func (j *jobRunner) invokeJob(meta sauron.JobMeta, success, fail chan<- sauron.JobMeta) error {
 	eng := j.engFactory()
 	if err := eng.SetJobMeta(meta); err != nil {
 		return err
@@ -208,12 +220,12 @@ func (j *jobRunner) invokeJob(meta sauron.JobMeta) error {
 	// invoke a goroutine to run jobs parallelly
 	go func() {
 		if err := eng.Run(); err != nil {
-			j.output.Errorf("Run job %s fail, err:%v", meta.JobID, err)
-			j.fail <- meta
+			j.output.Errorf("==== Run job %s fail ====, err:%v", meta.JobID, err)
+			fail <- meta
 			return
 		}
-		j.output.Infof("Run job %s success", meta.JobID)
-		j.success <- meta
+		j.output.Infof("==== Run job %s success ====", meta.JobID)
+		success <- meta
 	}()
 	return nil
 }

@@ -24,6 +24,20 @@ func (_m *JobRunner) Events() <-chan sauron.JobEvent {
 	return r0
 }
 
+// RunJob provides a mock function with given fields: job
+func (_m *JobRunner) RunJob(job sauron.JobMeta) error {
+	ret := _m.Called(job)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(sauron.JobMeta) error); ok {
+		r0 = rf(job)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Start provides a mock function with given fields:
 func (_m *JobRunner) Start() error {
 	ret := _m.Called()

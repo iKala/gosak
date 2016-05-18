@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-
 	"math/rand"
 	"strings"
 	"time"
 
 	elastic "gopkg.in/olivere/elastic.v3"
 
+	"straas.io/base/ctrl"
 	"straas.io/base/logger"
 	"straas.io/base/timeutil"
 	"straas.io/sauron"
@@ -28,8 +28,9 @@ var (
 	envStr       = flag.String("envs", "", "environments separated by comma")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
 	esHosts      = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
-	jobPattern   = flag.String("jobPattern", "", "only run jobs matches the pattern")
+	jobPattern   = flag.String("jobPattern", "", "only run jobs matches the pattern, only for dryrun mode")
 	logLevel     = flag.String("logLevel", "info", "log level")
+	port         = flag.Int("port", 8000, "port for health check")
 	log          = logger.Get()
 )
 
@@ -76,11 +77,7 @@ func main() {
 	// prepare ticker
 	var ticker <-chan time.Time
 	// dry run only need to tick once immediately
-	if *dryRun {
-		oneTimeTicker := make(chan time.Time, 1)
-		ticker = oneTimeTicker
-		oneTimeTicker <- time.Now()
-	} else {
+	if !*dryRun {
 		ticker = time.NewTicker(*tickInterval).C
 	}
 
@@ -133,8 +130,8 @@ func main() {
 		clock,
 	)
 
-	runner.Start()
 	log.Info("[main] start to run jobs")
+	runner.Start()
 
 	// TODO: better handling (slack)
 	go func() {
@@ -143,9 +140,20 @@ func main() {
 		}
 	}()
 
-	// TODO: Leader election for cluster
+	// TODO: Leader election for cluster (if necessary)
 	// TODO: add plugin help msg to "go help" message
-	// TODO: listen http for health check
 	// TODO: handle graceful shutdown
-	time.Sleep(time.Minute)
+	if *dryRun {
+		for _, j := range jobs {
+			if *jobPattern != "" && !strings.Contains(j.JobID, *jobPattern) {
+				continue
+			}
+			if err := runner.RunJob(j); err != nil {
+				log.Fatal(err)
+			}
+		}
+		return
+	}
+
+	log.Fatal(ctrl.RunController(*port))
 }

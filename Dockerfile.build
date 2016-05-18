@@ -1,0 +1,6 @@
+FROM golang:1.6.2
+
+WORKDIR /go
+
+# install glide for pkg management
+RUN go get github.com/Masterminds/glide

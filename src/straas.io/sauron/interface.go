@@ -119,11 +119,15 @@ type JobRunner interface {
 	Update(jobs []JobMeta) error
 	// Events reports noticeable events of the runner
 	Events() <-chan JobEvent
+	// RunJob runs the given job
+	RunJob(job JobMeta) error
 }
 
+// Output defines an interface for dry output message
 type Output interface {
-	// OutputMsgf printf output important message (for dryrun)
+	// Infof printf output important message (for dryrun)
 	Infof(string, ...interface{})
+	// Errorf printf output important error message (for dryrun)
 	Errorf(string, ...interface{})
 }
 

@@ -1,0 +1,12 @@
+# must with glibc
+FROM frolvlad/alpine-glibc:alpine-3.3
+MAINTAINER taco.lin@livehouse.in
+
+# install bash
+RUN apk add --update bash && rm -rf /var/cache/apk/*
+
+COPY /build/ /build/
+COPY /script/ /script/
+COPY /config/ /config/
+
+ENTRYPOINT ["/build/main"]
