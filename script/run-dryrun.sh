@@ -25,8 +25,9 @@ case "$RUN_ENV" in
   ;;
 esac
 
+gcloud docker --project straasio-staging pull $IMAGE
 docker run -it --rm \
-  -v config:/configForDryrun \
+  -v $(pwd)/config:/configForDryrun \
   ${IMAGE} \
   -dryRun \
   -configRoot=/configForDryrun \

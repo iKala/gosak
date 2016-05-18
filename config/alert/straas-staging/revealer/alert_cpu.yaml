@@ -5,5 +5,6 @@ script: |
     "cpu",
     notify("backend"),
     lastFor(v, ">", 15, "0m"),
-    lastFor(v, ">", 10, "0m", 44)
+    lastFor(v, ">", 10, "0m"),
+    55
   )

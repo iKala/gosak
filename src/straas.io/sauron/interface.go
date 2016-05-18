@@ -32,6 +32,7 @@ type JobMeta struct {
 	Interval time.Duration `json:"interval" yaml:"interval"`
 }
 
+// FuncReturn defines a type for engine return function
 type FuncReturn func(ctx PluginContext) error
 
 // PluginContext defines an interface for plugin to communicate

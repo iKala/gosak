@@ -25,6 +25,7 @@ lastfor allow two kinds of operations:
 
 */
 
+// LastForResult records result of lastfor
 type LastForResult struct {
 	Trigger bool
 	Desc    string

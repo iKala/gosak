@@ -21,8 +21,9 @@ var (
 // NewEngine creates an instance of engine
 func NewEngine(store sauron.Store, output sauron.Output) sauron.Engine {
 	return &engineImpl{
-		vm:    otto.New(),
-		store: store,
+		vm:     otto.New(),
+		store:  store,
+		output: output,
 	}
 }
 
@@ -87,7 +88,7 @@ func (e *engineImpl) makeOttoFunc(name string,
 	run func(sauron.PluginContext) error) func(call otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 
-		log.Debug("[engine] ", callToString(name, call))
+		log.Debugf("[engine] %s", callToString(name, call))
 
 		// prepare context
 		ctx := &contextImpl{
@@ -99,8 +100,10 @@ func (e *engineImpl) makeOttoFunc(name string,
 
 		// terminate VM if error occurs
 		if err := run(ctx); err != nil {
+			ottoCtx := e.vm.Context()
+			loc := fmt.Sprintf("line:%d, col:%d", ottoCtx.Line, ottoCtx.Column)
 			// halt
-			e.haltVM(fmt.Errorf("[%s] %v", name, err))
+			e.haltVM(fmt.Errorf("[%s] %s %v", name, loc, err))
 			return otto.Value{}
 		}
 		result, err := e.vm.ToValue(ctx.rtnValue)

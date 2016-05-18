@@ -30,14 +30,15 @@ func (g *sinkerGroup) empty() bool {
 	return len(g.sinkers) == 0
 }
 
-func (g *sinkerGroup) sinkAll(dryRun bool, severity sauron.Severity, recovery bool, desc string) error {
+func (g *sinkerGroup) sinkAll(ctx sauron.PluginContext, severity sauron.Severity,
+	recovery bool, desc string) error {
 	// for dryrun mode, print is enough
-	if dryRun {
-		for _, s := range g.sinkers {
-			log.Infof("[notification] sink %s(severity:%d, recovery:%v, desc:%s)",
-				s.Name(), severity, recovery, desc)
-
-		}
+	for _, sinker := range g.sinkers {
+		ctx.Infof("[notification] sink %s(severity:%d, recovery:%v, desc:%s)",
+			sinker.Name(), severity, recovery, desc)
+	}
+	// dry cannot do folloing operations
+	if ctx.JobMeta().DryRun {
 		return nil
 	}
 

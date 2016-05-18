@@ -20,7 +20,7 @@ func NewCache(maxEntries int, clock timeutil.Clock) LocalCache {
 // EntryGenerator defines a cache item generator
 type EntryGenerator func() (interface{}, error)
 
-// Cache is the abstract interface for local cache
+// LocalCache is the abstract interface for local cache
 type LocalCache interface {
 	// Get returns data from store or generates
 	// new one if cache miss or expired

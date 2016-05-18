@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// NewReadlClock creates real clock
+// NewRealClock creates real clock
 func NewRealClock() Clock {
 	return &realClock{}
 }

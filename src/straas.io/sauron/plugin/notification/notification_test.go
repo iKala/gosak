@@ -151,7 +151,10 @@ func (s *notificationTestSuite) TestRunAlert() {
 	cfg2 := &testSinkCfg{position: int(2)}
 
 	ms1.On("Sink", cfg1, sauron.Severity(1), false, "some desc").Return(nil).Once()
+	ms1.On("Name").Return("name1").Once()
 	ms2.On("Sink", cfg2, sauron.Severity(1), false, "some desc").Return(nil).Once()
+	ms2.On("Name").Return("name2").Once()
+
 	s.run(`
 		notify("backend")(1, false, "some desc")
 	`)
@@ -164,6 +167,7 @@ func (s *notificationTestSuite) TestRun1Resolve() {
 	s.Equal(len(s.mockSinkers), 2)
 
 	ms1 := s.mockSinkers[0]
+	ms1.On("Name").Return("name1").Once()
 	cfg1 := &testSinkCfg{position: int(1)}
 
 	ms1.On("Sink", cfg1, sauron.Severity(2), true, "some desc").Return(nil).Once()

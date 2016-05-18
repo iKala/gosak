@@ -10,10 +10,12 @@ var (
 	logger = newLogger()
 )
 
+// Get return logger
 func Get() Logger {
 	return logger
 }
 
+// SetLevel set the log level
 func SetLevel(level string) error {
 	lv, err := logrus.ParseLevel(level)
 	if err != nil {

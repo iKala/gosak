@@ -4,8 +4,9 @@
 GIT_COMMIT=$(git rev-parse --short HEAD)
 TAG=${1:-$GIT_COMMIT}
 
-IMG_BASE=sauron:${TAG}
-BUILD_IMG=build-${IMG_BASE}
+IMG_TAG=sauron:${TAG}
+IMG_LATEST=sauron:latest
+BUILD_IMG=build-${IMG_TAG}
 CONTAINER_NAME=sauron-build-container
 SOURCE_TAR=source.tar.gz
 BUILD_FOLDER=build/
@@ -24,7 +25,7 @@ function safe_exec {
   if [ $? -ne 0 ]; then
     echo "$@ failed"
     # force cleanup if execute fail
-    # clean_up
+    clean_up
     exit 1
   fi
 }
@@ -51,10 +52,15 @@ function run_test {
 # TODO: not used in current bash
 function push_docker {
   PROJECT_ID=$1
-  IMAGE_PATH=gcr.io/${PROJECT_ID}/{IMG_BASE}
-  safe_exec docker tag --force ${IMG_BASE} ${IMAGE_PATH}
-  safe_exec gcloud push --project ${PROJECT_ID} ${IMAGE_PATH}
+  IMAGE_PATH=gcr.io/${PROJECT_ID}/${IMG_TAG}
+  safe_exec docker tag --force ${IMG_TAG} ${IMAGE_PATH}
+  safe_exec gcloud docker --project ${PROJECT_ID} push ${IMAGE_PATH}
   safe_exec docker rmi ${IMAGE_PATH}
+
+  IMAGE_PATH=gcr.io/${PROJECT_ID}/${IMG_LATEST}
+  safe_exec docker tag --force ${IMG_TAG} ${IMAGE_PATH}
+  safe_exec gcloud docker --project ${PROJECT_ID} push ${IMAGE_PATH}
+  safe_exec docker rmi ${IMAGE_PATH}  
 }
 
 # create build folder
@@ -70,6 +76,11 @@ run_test
 safe_exec docker cp ${CONTAINER_NAME}:/go/bin ${BUILD_FOLDER}
 
 # build run docker
-safe_exec docker build -t ${IMG_BASE} -f Dockerfile.run .
+safe_exec docker build -t ${IMG_TAG} -f Dockerfile.run .
+
+# push images to registry
+push_docker straasio-staging
+#push_docker straasio-production
+#push_docker ikalacomputeenginetest
 
 clean_up

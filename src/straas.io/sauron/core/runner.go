@@ -146,7 +146,7 @@ func (j *jobRunner) insertJobs(jobs []sauron.JobMeta) {
 				return nil, nil
 			}
 			if err := j.invokeJob(meta, j.success, j.fail); err != nil {
-				log.Errorf("[runner] fail to invoke job %s, err:%v", err)
+				log.Errorf("[runner] fail to invoke job %s, err:%v", meta.JobID, err)
 				return nil, err
 			}
 			log.Infof("[runner] job %s invoked", meta.JobID)

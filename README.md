@@ -44,6 +44,12 @@ cd ${PROJECT_ROOT}
 bash script/run-docker.sh straas-staging
 ```
 
+## linter
+```
+go vet $(go list straas.io/...)
+go list straas.io/... | xargs -n 1 $GOPATH/bin/golint
+```
+
 ## TODO:
 1. Dryrun mode (a.k.a fake notification, but queriable)
 2. Presistent storage

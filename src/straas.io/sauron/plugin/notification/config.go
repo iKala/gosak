@@ -13,7 +13,7 @@ type Config struct {
 	Groups []*Group `json:"groups" yaml:"groups"`
 }
 
-// Groups defines the notification group
+// Group defines the notification group
 type Group struct {
 	// Name is group name
 	Name string `json:"name" yaml:"name"`
@@ -71,7 +71,7 @@ func (m *RawMessage) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// UnmarshalYML implements the interface of yaml.Unmarshaler
+// UnmarshalYAML implements the interface of yaml.Unmarshaler
 func (m *RawMessage) UnmarshalYAML(unmarshaler func(interface{}) error) error {
 	m.codec = "yaml"
 	m.unmarshaler = unmarshaler
