@@ -20,14 +20,17 @@ type TestPlugin struct {
 	RunFunc func(ctx sauron.PluginContext) error
 }
 
+// Name refer Plugin.Name
 func (t *TestPlugin) Name() string {
 	return t.PluginName
 }
 
+// Run refer Plugin.Run
 func (t *TestPlugin) Run(ctx sauron.PluginContext) error {
 	return t.RunFunc(ctx)
 }
 
+// HelpMsg refer Plugin.HelpMsg
 func (t *TestPlugin) HelpMsg() string {
 	return t.Help
 }

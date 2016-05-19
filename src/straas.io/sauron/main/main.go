@@ -14,12 +14,14 @@ import (
 	"straas.io/base/timeutil"
 	"straas.io/sauron"
 	"straas.io/sauron/core"
+	// externals
+	"straas.io/external/slack"
 	// plugins
 	"straas.io/sauron/plugin/alert"
 	"straas.io/sauron/plugin/metric"
 	"straas.io/sauron/plugin/notification"
 	// notification sinkers
-	"straas.io/sauron/plugin/notification/slack"
+	ntySlack "straas.io/sauron/plugin/notification/slack"
 )
 
 var (
@@ -95,7 +97,9 @@ func main() {
 	// register sinkers
 	// TODO: es insert sinker
 	log.Info("[main] register notification sinkers")
-	notification.RegisterSinker("slack", slack.NewSlackSinker)
+	notification.RegisterSinker("slack", func() notification.Sinker {
+		return ntySlack.NewSinker(slack.New())
+	})
 
 	ntyPlugin, err := notification.NewNotification(cfgMgr)
 	if err != nil {

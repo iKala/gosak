@@ -1,11 +1,8 @@
 package slack
 
 import (
-	"fmt"
-
-	"github.com/bluele/slack"
-
 	"straas.io/base/logger"
+	"straas.io/external"
 	"straas.io/sauron"
 	"straas.io/sauron/plugin/notification"
 )
@@ -14,9 +11,11 @@ var (
 	log = logger.Get()
 )
 
-// NewSlackSinker creates a slack sinker
-func NewSlackSinker() notification.Sinker {
-	return &slackSinker{}
+// NewSinker creates a slack sinker
+func NewSinker(slack external.Slack) notification.Sinker {
+	return &slackSinker{
+		api: slack,
+	}
 }
 
 type slackCfg struct {
@@ -29,6 +28,7 @@ type slackCfg struct {
 }
 
 type slackSinker struct {
+	api external.Slack
 }
 
 func (s *slackSinker) Name() string {
@@ -37,17 +37,8 @@ func (s *slackSinker) Name() string {
 
 func (s *slackSinker) Sink(rawConfig interface{}, severity sauron.Severity,
 	recovery bool, desc string) error {
-
+	// it's safe
 	cfg := rawConfig.(*slackCfg)
-	api := slack.New(cfg.Token)
-
-	channel, err := api.FindChannelByName(cfg.Channel)
-	if err != nil {
-		log.Errorf("Fail to find slack channel: channel:%s, err:%v",
-			cfg.Channel, err)
-		return fmt.Errorf("Fail to find slack channel: channel:%s, err:%v",
-			cfg.Channel, err)
-	}
 
 	// decide color
 	color := "danger"
@@ -56,17 +47,14 @@ func (s *slackSinker) Sink(rawConfig interface{}, severity sauron.Severity,
 		color = "good"
 		title = "Resolve report"
 	}
-	options := &slack.ChatPostMessageOpt{
-		AsUser:   false,
-		Username: cfg.UserName,
-		Attachments: []*slack.Attachment{
-			&slack.Attachment{
-				Color: color,
-				Title: desc,
-			},
-		},
-	}
-	return api.ChatPostMessage(channel.Id, title, options)
+	return s.api.Post(
+		cfg.Token,
+		cfg.Channel,
+		cfg.UserName,
+		title,
+		desc,
+		color,
+	)
 }
 
 func (s *slackSinker) ConfigFactory() interface{} {
