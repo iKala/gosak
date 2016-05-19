@@ -26,3 +26,9 @@ import:
   version: 5ad82ac42481ca5de6d34e3bcb5de21c0db965c7
 - package: github.com/fatih/color
   version: 533cd7fd8a85905f67a1753afb4deddc85ea174f
+- package: github.com/danryan/go-pagerduty
+  version: b3c524d7ff47540b731905de828453489cb83ffd
+- package: github.com/google/go-querystring
+  version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
+  subpackages:
+  - query

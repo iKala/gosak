@@ -10,6 +10,12 @@ type Slack interface {
 	Post(token, channelName, userName, title, message, color string) error
 }
 
+// PagerDuty defines an interface for trigger incidents to pagerduty
+type PagerDuty interface {
+	// Trigger creates a pagerduty incident
+	Trigger(token string, serviceKey string, incidentKey string, desc string) error
+}
+
 // Elasticsearch defines an interface for query and post elasticsearch
 // TODO: impl es
 type Elasticsearch interface {

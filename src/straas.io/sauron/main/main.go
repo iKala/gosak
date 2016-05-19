@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"strings"
 	"time"
 
@@ -15,12 +16,14 @@ import (
 	"straas.io/sauron"
 	"straas.io/sauron/core"
 	// externals
+	"straas.io/external/pagerduty"
 	"straas.io/external/slack"
 	// plugins
 	"straas.io/sauron/plugin/alert"
 	"straas.io/sauron/plugin/metric"
 	"straas.io/sauron/plugin/notification"
 	// notification sinkers
+	ntyPagerDuty "straas.io/sauron/plugin/notification/pagerduty"
 	ntySlack "straas.io/sauron/plugin/notification/slack"
 )
 
@@ -40,16 +43,19 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-// TODO: log util
-// TODO: config loader
 func main() {
 	flag.Parse()
 
+	// setup default time for default http client
+	http.DefaultClient.Timeout = 30 * time.Second
+
+	// create logger
 	if err := logger.SetLevel(*logLevel); err != nil {
 		log.Fatalf("illegal log level %s", *logLevel)
 	}
-
+	// create clock
 	clock := timeutil.NewRealClock()
+	// create output
 	output := core.NewOutput(*dryRun)
 
 	// parse environemnts
@@ -100,7 +106,11 @@ func main() {
 	notification.RegisterSinker("slack", func() notification.Sinker {
 		return ntySlack.NewSinker(slack.New())
 	})
+	notification.RegisterSinker("pagerduty", func() notification.Sinker {
+		return ntyPagerDuty.NewSinker(pagerduty.New(), clock)
+	})
 
+	// create notifiation
 	ntyPlugin, err := notification.NewNotification(cfgMgr)
 	if err != nil {
 		log.Fatalf("[main] fail to init notification plugin, err:%v", err)

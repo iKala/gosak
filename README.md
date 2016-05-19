@@ -47,7 +47,7 @@ bash script/run-docker.sh straas-staging
 ## linter
 ```
 go vet $(go list straas.io/...)
-go list straas.io/... | grep -v "mocks" | xargs -n 1 $GOPATH/bin/golint
+go list straas.io/... | grep -v "mocks" | xargs -n 1 golint
 ```
 
 ## TODO:
