@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -14,13 +15,13 @@ import (
 )
 
 const (
-	yamlExtension = ".yaml"
-	jsonExtension = ".json"
+	defaultInterval = time.Minute
+	yamlExtension   = ".yaml"
+	jsonExtension   = ".json"
 )
 
 // NewFileConfig creates a file config loader
 func NewFileConfig(cfgRoot string, dryRun bool) (sauron.Config, error) {
-	// TODO: check existence of root
 	futil := &fileUtilImpl{}
 	if !futil.Exist(cfgRoot) {
 		return nil, fmt.Errorf("config root %s does not exist", cfgRoot)
@@ -91,6 +92,10 @@ func (c *fileConfigImpl) loadJobs(env string) ([]sauron.JobMeta, error) {
 		meta.DryRun = c.dryRun
 		meta.Env = env
 		meta.JobID = toJobID(alertRoot, path)
+		// use default interval
+		if meta.Interval == 0 {
+			meta.Interval = defaultInterval
+		}
 
 		result = append(result, meta)
 		return nil

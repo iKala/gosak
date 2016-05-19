@@ -27,8 +27,12 @@ import (
 	ntySlack "straas.io/sauron/plugin/notification/slack"
 )
 
+const (
+	cacheSize = 3000
+)
+
 var (
-	configRoot   = flag.String("configRoot", "config/", "config root folder")
+	configRoot   = flag.String("configRoot", "config/sauron", "config root folder")
 	dryRun       = flag.Bool("dryRun", true, "dryrun mode")
 	envStr       = flag.String("envs", "", "environments separated by comma")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
@@ -157,6 +161,7 @@ func main() {
 	// TODO: Leader election for cluster (if necessary)
 	// TODO: add plugin help msg to "go help" message
 	// TODO: handle graceful shutdown
+	// TODO: dashboard
 	if *dryRun {
 		for _, j := range jobs {
 			if *jobPattern != "" && !strings.Contains(j.JobID, *jobPattern) {

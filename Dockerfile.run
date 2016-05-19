@@ -7,6 +7,6 @@ RUN apk add --update bash && rm -rf /var/cache/apk/*
 
 COPY /build/ /build/
 COPY /script/ /script/
-COPY /config/ /config/
+COPY /config/sauron /config/
 
 ENTRYPOINT ["/build/main"]

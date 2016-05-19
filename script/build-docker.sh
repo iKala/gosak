@@ -10,7 +10,7 @@ IMG_LATEST=sauron:latest
 BUILD_IMG=build-${IMG_TAG}
 CONTAINER_NAME=sauron-build-container
 SOURCE_TAR=source.tar.gz
-BUILD_FOLDER=build/
+BUILD_FOLDER=build
 
 function clean_up {
   docker rm -f ${CONTAINER_NAME}
@@ -66,6 +66,7 @@ function push_docker {
 
 # create build folder
 rm -rf ${BUILD_FOLDER}
+mkdir ${BUILD_FOLDER}
 
 # build and run a docker for build code
 build_and_run_builder
@@ -74,7 +75,7 @@ build_and_run_builder
 run_test
 
 # copy necessary files to build folder
-safe_exec docker cp ${CONTAINER_NAME}:/go/bin ${BUILD_FOLDER}
+safe_exec docker cp ${CONTAINER_NAME}:/go/bin/main ${BUILD_FOLDER}/main
 
 # build run docker
 safe_exec docker build -t ${IMG_TAG} -f Dockerfile.run .

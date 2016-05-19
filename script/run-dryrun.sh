@@ -28,7 +28,7 @@ esac
 
 gcloud docker --project straasio-staging pull $IMAGE
 docker run -it --rm \
-  -v $(pwd)/config:/configForDryrun \
+  -v $(pwd)/config/sauron:/configForDryrun \
   ${IMAGE} \
   -dryRun=true \
   -configRoot=/configForDryrun \
