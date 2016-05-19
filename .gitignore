@@ -1,6 +1,9 @@
-dist/
+bin/
+pkg/
+build/
 coverage/
 src/vendor/
 *.log
 .DS_Store
 glide.lock
+source.tar.gz

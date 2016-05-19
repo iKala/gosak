@@ -1,5 +1,6 @@
 #!/bin/bash
-# usage bash build-docker.sh <DOCKER_TAG>
+# usage bash script/build-docker.sh <DOCKER_TAG>
+# note that this script MUST run in project root
 
 GIT_COMMIT=$(git rev-parse --short HEAD)
 TAG=${1:-$GIT_COMMIT}

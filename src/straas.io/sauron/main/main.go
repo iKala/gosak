@@ -24,7 +24,7 @@ import (
 
 var (
 	configRoot   = flag.String("configRoot", "config/", "config root folder")
-	dryRun       = flag.Bool("dryRun", false, "dryrun mode")
+	dryRun       = flag.Bool("dryRun", true, "dryrun mode")
 	envStr       = flag.String("envs", "", "environments separated by comma")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
 	esHosts      = flag.String("esHosts", "", "elasticsearch url list separarted in comma")

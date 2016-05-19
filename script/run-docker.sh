@@ -1,10 +1,11 @@
 #!/bin/bash
-# usage: bash run-docker.sh straas-production <IMG>
+# usage: bash script/run-docker.sh straas-production <IMG>
+# note that this script MUST run in project root
 
 RUN_ENV=$1
 IMAGE=$2
 
-# run bosun
+# prepare variables for different env
 case "$RUN_ENV" in
   "straas-production")
     ES_HOSTS=http://infra-elasticsearch-straas-production-1:9200
@@ -30,4 +31,5 @@ docker run -d \
   ${IMAGE} \
   -configRoot=/config \
   -esHosts=${ES_HOSTS} \
-  -envs=${RUN_ENV}
+  -envs=${RUN_ENV} \
+  -dryRun=false

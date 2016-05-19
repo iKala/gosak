@@ -1,11 +1,12 @@
 #!/bin/bash
-# usage: bash run-dryrun.sh straas-production <IMG>
+# usage: bash script/run-dryrun.sh straas-production <IMG>
+# note that this script MUST run in project root
 
 RUN_ENV=$1
 DEFAULTIMG=gcr.io/straasio-staging/sauron:latest
 IMAGE=${2:-$DEFAULTIMG}
 
-# run bosun
+# prepare variables for different env
 case "$RUN_ENV" in
   "straas-production")
     ES_HOSTS=http://104.155.232.6:9200
@@ -29,7 +30,7 @@ gcloud docker --project straasio-staging pull $IMAGE
 docker run -it --rm \
   -v $(pwd)/config:/configForDryrun \
   ${IMAGE} \
-  -dryRun \
+  -dryRun=true \
   -configRoot=/configForDryrun \
   -logLevel=error \
   -esHosts=${ES_HOSTS} \
