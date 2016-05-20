@@ -28,8 +28,6 @@ func NewSinker(pd external.PagerDuty, clock timeutil.Clock) notification.Sinker 
 }
 
 type pagerDutyCfg struct {
-	// Token is slack api token
-	Token string `json:"token" yaml:"token"`
 	// UserName is message display user name
 	ServiceKey string `json:"service_key" yaml:"service_key"`
 }
@@ -59,7 +57,7 @@ func (s *pagerDutySinker) Sink(rawConfig interface{}, severity sauron.Severity,
 	incidentKey := makeIncidentKey(s.clock.Now())
 	log.Infof("create pagerduty incident, service:%s, incident:%s, desc:%s",
 		cfg.ServiceKey, incidentKey, desc)
-	return s.api.Trigger(cfg.Token, cfg.ServiceKey, incidentKey, desc)
+	return s.api.Trigger(cfg.ServiceKey, incidentKey, desc)
 }
 
 func (s *pagerDutySinker) ConfigFactory() interface{} {

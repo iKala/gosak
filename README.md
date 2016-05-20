@@ -25,9 +25,9 @@ PROJECT_ROOT=<Sauron project root>
 cd ${PROJECT_ROOT}/src/straas.io/sauron/main
 go run main.go \
   -envs=straas-staging \
-  -dryRun \
+  -dryRun=true \
   -esHosts=http://104.155.238.191:9200 \
-  -configRoot=${PROJECT_ROOT}/config/sauron \
+  -configRoot=${PROJECT_ROOT}/config/sauron
 ```
 
 dryrun script

@@ -3,7 +3,6 @@ package pagerduty
 import (
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/danryan/go-pagerduty/pagerduty"
@@ -12,37 +11,25 @@ import (
 )
 
 const (
-	triggerUrl = "https://events.pagerduty.com/generic/2010-04-15/create_event.json"
-)
-
-var (
-	clients    = map[string]*pagerduty.Client{}
-	clientLock = sync.Mutex{}
+	triggerURL = "https://events.pagerduty.com/generic/2010-04-15/create_event.json"
 )
 
 // New creates an pagerduty intance
-func New() external.PagerDuty {
-	return &impl{}
-}
-
-type PagerDuty interface {
-	Trigger(
-		token string,
-		serviceKey string,
-		incidentKey string,
-		desc string,
-	) error
+func New(token string) external.PagerDuty {
+	httpClient := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+	client := pagerduty.NewClient("events", token, httpClient)
+	return &impl{
+		client: client,
+	}
 }
 
 type impl struct {
+	client *pagerduty.Client
 }
 
-func (s *impl) Trigger(token string,
-	serviceKey string,
-	incidentKey string,
-	desc string) error {
-	client := ensureClient(token)
-
+func (s *impl) Trigger(serviceKey, incidentKey, desc string) error {
 	data := map[string]interface{}{
 		"service_key": serviceKey,
 		"event_type":  "trigger",
@@ -53,7 +40,7 @@ func (s *impl) Trigger(token string,
 	}
 
 	body := map[string]interface{}{}
-	resp, err := client.Post(triggerUrl, data, &body)
+	resp, err := s.client.Post(triggerURL, data, &body)
 	if err != nil {
 		return fmt.Errorf("fail to trigger pagerduty incident, err:%v", err)
 	}
@@ -62,20 +49,4 @@ func (s *impl) Trigger(token string,
 			resp.StatusCode, body)
 	}
 	return nil
-}
-
-func ensureClient(token string) *pagerduty.Client {
-	clientLock.Lock()
-	defer clientLock.Unlock()
-
-	client, ok := clients[token]
-	if ok {
-		return client
-	}
-	httpClient := &http.Client{
-		Timeout: 15 * time.Second,
-	}
-	client = pagerduty.NewClient("events", token, httpClient)
-	clients[token] = client
-	return client
 }

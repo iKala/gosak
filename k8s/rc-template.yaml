@@ -17,6 +17,7 @@ spec:
           - -configRoot=/config
           - -envs=${RUN_ENV}
           - -esHosts=${ES_HOSTS}
+          - -slackToken=xoxb-18018736162-pOGrLi9GaD3Vm8tfooE74gnb
           - -dryRun=false
         resources:
           limits:

@@ -9,16 +9,19 @@ import (
 )
 
 // New creates a slack implementation
-func New() external.Slack {
-	return &slackImpl{}
+func New(token string) external.Slack {
+	return &slackImpl{
+		token: token,
+	}
 }
 
 type slackImpl struct {
+	token string
 }
 
-func (s *slackImpl) Post(token, channelName, userName,
+func (s *slackImpl) Post(channelName, userName,
 	title, message, color string) error {
-	api := slack.New(token)
+	api := slack.New(s.token)
 	channel, err := api.FindChannelByName(channelName)
 	if err != nil {
 		return fmt.Errorf("Fail to find slack channel: channel:%s, err:%v",

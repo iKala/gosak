@@ -19,8 +19,6 @@ func NewSinker(slack external.Slack) notification.Sinker {
 }
 
 type slackCfg struct {
-	// Token is slack api token
-	Token string `json:"token" yaml:"token"`
 	// UserName is message display user name
 	UserName string `json:"user_name" yaml:"user_name"`
 	// Channel is the channel name
@@ -48,7 +46,6 @@ func (s *slackSinker) Sink(rawConfig interface{}, severity sauron.Severity,
 		title = "Resolve report"
 	}
 	return s.api.Post(
-		cfg.Token,
 		cfg.Channel,
 		cfg.UserName,
 		title,

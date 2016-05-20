@@ -16,6 +16,7 @@ import (
 	"straas.io/sauron"
 	"straas.io/sauron/core"
 	// externals
+	"straas.io/external/elasticsearch"
 	"straas.io/external/pagerduty"
 	"straas.io/external/slack"
 	// plugins
@@ -36,11 +37,14 @@ var (
 	dryRun       = flag.Bool("dryRun", true, "dryrun mode")
 	envStr       = flag.String("envs", "", "environments separated by comma")
 	tickInterval = flag.Duration("jobTicker", time.Minute, "job runner ticker")
-	esHosts      = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
 	jobPattern   = flag.String("jobPattern", "", "only run jobs matches the pattern, only for dryrun mode")
 	logLevel     = flag.String("logLevel", "info", "log level")
 	port         = flag.Int("port", 8000, "port for health check")
 	log          = logger.Get()
+	// flags for plugins
+	esHosts        = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
+	slackToken     = flag.String("slackToken", "", "slack access token")
+	pagerDutyToken = flag.String("pagerDutyToken", "", "pagerduty access token")
 )
 
 func init() {
@@ -108,10 +112,10 @@ func main() {
 	// TODO: es insert sinker
 	log.Info("[main] register notification sinkers")
 	notification.RegisterSinker("slack", func() notification.Sinker {
-		return ntySlack.NewSinker(slack.New())
+		return ntySlack.NewSinker(slack.New(*slackToken))
 	})
 	notification.RegisterSinker("pagerduty", func() notification.Sinker {
-		return ntyPagerDuty.NewSinker(pagerduty.New(), clock)
+		return ntyPagerDuty.NewSinker(pagerduty.New(*pagerDutyToken), clock)
 	})
 
 	// create notifiation
@@ -125,7 +129,7 @@ func main() {
 	plugins := []sauron.Plugin{
 		alert.NewLastFor(clock),
 		alert.NewAlert(clock),
-		metric.NewQuery(esClient, clock),
+		metric.NewQuery(elasticsearch.New(esClient), clock),
 		ntyPlugin,
 	}
 	for _, p := range plugins {
