@@ -37,11 +37,11 @@ cd ${PROJECT_ROOT}
 bash script/run-dryrun.sh straas-staging
 ```
 
-run docker script
+deploy docker script
 ```
 PROJECT_ROOT=<Sauron project root>
 cd ${PROJECT_ROOT}
-bash script/run-docker.sh straas-staging
+bash script/deploy-k8s.sh straas-staging $TAG
 ```
 
 ## linter
