@@ -10,8 +10,6 @@ import (
 	"log"
 )
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 type binaryToText func(data []byte) string
 type textToBinary func(data string) ([]byte, error)
 
