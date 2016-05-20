@@ -41,7 +41,7 @@ deploy docker script
 ```
 PROJECT_ROOT=<Sauron project root>
 cd ${PROJECT_ROOT}
-bash script/deploy-k8s.sh straas-staging $TAG
+bash script/deploy-k8s.sh straas-staging $TAG init
 ```
 
 ## linter

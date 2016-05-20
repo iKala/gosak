@@ -93,7 +93,7 @@ if [[ $INIT != "init" ]]; then
   safeExec gcloud container clusters get-credentials $CLUSTER_NAME
 fi
 
-safeExec $KUBECTL delete rc ${RC_NAME}
+$KUBECTL get rc ${RC_NAME} && safeExec $KUBECTL delete rc ${RC_NAME}
 safeExec $KUBECTL create -f $DEPLOY_FILE
 
 # cleanup files and resources
