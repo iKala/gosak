@@ -12,7 +12,7 @@ case "$RUN_ENV" in
     ES_HOSTS=${ES_HOSTS},http://infra-elasticsearch-straas-production-2:9200
     ES_HOSTS=${ES_HOSTS},http://infra-elasticsearch-straas-production-3:9200
   ;;
-  "straas-production")
+  "straas-staging")
     ES_HOSTS=http://infra-elasticsearch-straas-staging-1:9200
     ES_HOSTS=${ES_HOSTS},http://infra-elasticsearch-straas-staging-2:9200
   ;;
