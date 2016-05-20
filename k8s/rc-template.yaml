@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: ${RC_NAME}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sauron
+    spec:
+      containers:
+      - name: sauron
+        image: ${IMAGE}
+        imagePullPolicy: Always
+        args:          
+          - -configRoot=/config
+          - -envs=${RUN_ENV}
+          - -esHosts=${ES_HOSTS}
+          - -dryRun=false
+        resources:
+          limits:
+            cpu: ${CPU}
+            memory: ${MEM}
+        livenessProbe:
+          httpGet:
+            port: 8000
+          initialDelaySeconds: 10
