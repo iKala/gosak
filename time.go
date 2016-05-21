@@ -27,7 +27,7 @@ func ParseTime(rfc3339Time string) int {
 	return TimeToEpoch(t)
 }
 
-// GetDateString gets date string from time
+// GetDateStringWithZone returns formatted date string
 func GetDateStringWithZone(t time.Time, location string) string {
 	loc, _ := time.LoadLocation(location)
 
@@ -36,7 +36,7 @@ func GetDateStringWithZone(t time.Time, location string) string {
 	return fmt.Sprintf("%d-%d-%d", year, month, day)
 }
 
-// GetTimeString gets time string from time
+// GetTimeStringWithZone returns formatted time string
 func GetTimeStringWithZone(t time.Time, location string) string {
 	loc, _ := time.LoadLocation(location)
 
@@ -48,7 +48,14 @@ func GetTimeStringWithZone(t time.Time, location string) string {
 		month, day, year, localTime.Hour(), localTime.Minute(), localTime.Second())
 }
 
-// Use to measure execution time of method
+// TimeTrack measures execution time of method
+// For example:
+//
+//    func foo() {
+//      defer TimeTrack(time.Now(), "foo")
+//      // Do something
+//    }
+//
 func TimeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
 	log.Printf("%s took %s", name, elapsed)
