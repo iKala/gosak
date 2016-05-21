@@ -25,3 +25,13 @@ func RandSeq(n int) string {
 
 	return string(b)
 }
+
+// StringValidate return true if the input string pass all validator checking
+func StringValidate(body string, filters ...func(body string) bool) bool {
+	for _, filter := range filters {
+		if !filter(body) {
+			return false
+		}
+	}
+	return true
+}
