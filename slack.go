@@ -7,13 +7,9 @@ import (
 	"github.com/bluele/slack"
 )
 
-const (
-	slackBotToken = "xoxb-18018736162-pOGrLi9GaD3Vm8tfooE74gnb"
-)
-
 // ListSlackChannels lists all slack channels
-func ListSlackChannels() {
-	api := slack.New(slackBotToken)
+func ListSlackChannels(token string) {
+	api := slack.New(token)
 	channels, err := api.ChannelsList()
 	if err != nil {
 		log.Printf("Fail to list slack channels: err[%s]", err.Error())
@@ -24,8 +20,8 @@ func ListSlackChannels() {
 }
 
 // PostSlackMessage posts message to some channel
-func PostSlackMessage(channelName, message string) {
-	api := slack.New(slackBotToken)
+func PostSlackMessage(token, channelName, message string) {
+	api := slack.New(token)
 
 	channel, err := api.FindChannelByName(channelName)
 	if err != nil {
