@@ -8,6 +8,7 @@ test: ## Run all test
 	go test -v ./...
 
 deps: ## Install all dependencies
+	go get github.com/bluele/slack
 	# below is for test
 	go get github.com/stretchr/testify/assert
 
