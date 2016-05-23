@@ -10,13 +10,13 @@ type Stackdriver struct {
 	mock.Mock
 }
 
-// List provides a mock function with given fields: project, filter, start, end, op
-func (_m *Stackdriver) List(project string, filter string, start time.Time, end time.Time, op string) ([]external.Point, error) {
-	ret := _m.Called(project, filter, start, end, op)
+// List provides a mock function with given fields: project, filter, op, start, end
+func (_m *Stackdriver) List(project string, filter string, op string, start time.Time, end time.Time) ([]external.Point, error) {
+	ret := _m.Called(project, filter, op, start, end)
 
 	var r0 []external.Point
-	if rf, ok := ret.Get(0).(func(string, string, time.Time, time.Time, string) []external.Point); ok {
-		r0 = rf(project, filter, start, end, op)
+	if rf, ok := ret.Get(0).(func(string, string, string, time.Time, time.Time) []external.Point); ok {
+		r0 = rf(project, filter, op, start, end)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]external.Point)
@@ -24,8 +24,8 @@ func (_m *Stackdriver) List(project string, filter string, start time.Time, end 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, time.Time, time.Time, string) error); ok {
-		r1 = rf(project, filter, start, end, op)
+	if rf, ok := ret.Get(1).(func(string, string, string, time.Time, time.Time) error); ok {
+		r1 = rf(project, filter, op, start, end)
 	} else {
 		r1 = ret.Error(1)
 	}

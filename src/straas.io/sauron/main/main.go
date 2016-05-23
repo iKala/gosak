@@ -42,9 +42,7 @@ var (
 	port         = flag.Int("port", 8000, "port for health check")
 	log          = logger.Get()
 	// flags for plugins
-	esHosts        = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
-	slackToken     = flag.String("slackToken", "", "slack access token")
-	pagerDutyToken = flag.String("pagerDutyToken", "", "pagerduty access token")
+	esHosts = flag.String("esHosts", "", "elasticsearch url list separarted in comma")
 )
 
 func init() {
@@ -73,6 +71,12 @@ func main() {
 	cfgMgr, err := core.NewFileConfig(*configRoot, *dryRun)
 	if err != nil {
 		log.Fatalf("[main] fail to load create config manager, err:%v", err)
+	}
+
+	// load credential
+	credential, err = loadCredential(cfgMgr, envs)
+	if err != nil {
+		log.Fatalf("[main] fail to load credential, err:%v", err)
 	}
 
 	// create es client
@@ -112,10 +116,10 @@ func main() {
 	// TODO: es insert sinker
 	log.Info("[main] register notification sinkers")
 	notification.RegisterSinker("slack", func() notification.Sinker {
-		return ntySlack.NewSinker(slack.New(*slackToken))
+		return ntySlack.NewSinker(slack.New(credential.SlackToken))
 	})
 	notification.RegisterSinker("pagerduty", func() notification.Sinker {
-		return ntyPagerDuty.NewSinker(pagerduty.New(*pagerDutyToken), clock)
+		return ntyPagerDuty.NewSinker(pagerduty.New(credential.PagerDutyToken), clock)
 	})
 
 	// create notifiation

@@ -26,7 +26,7 @@ type Elasticsearch interface {
 // Stackdriver deinfes an interface for query stackdriver
 type Stackdriver interface {
 	// List lists stackdriver metric by filter
-	List(project, filter string, start, end time.Time, op string) ([]Point, error)
+	List(project, filter, op string, start, end time.Time) ([]Point, error)
 }
 
 // Point is stackdriver timeseries point
