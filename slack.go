@@ -13,28 +13,30 @@ func ListSlackChannels(token string) {
 	channels, err := api.ChannelsList()
 	if err != nil {
 		log.Printf("Fail to list slack channels: err[%s]", err.Error())
+		return
 	}
+
 	for _, channel := range channels {
 		fmt.Println(channel.Id, channel.Name)
 	}
 }
 
 // PostSlackMessage posts message to some channel
-func PostSlackMessage(token, channelName, message string) {
+func PostSlackMessage(token, channelName, message string) error {
 	api := slack.New(token)
 
 	channel, err := api.FindChannelByName(channelName)
 	if err != nil {
 		log.Printf("Fail to find slack channel: slackChannel[%s], err[%s]",
 			channelName, err.Error())
+
+		return err
 	}
 
 	options := &slack.ChatPostMessageOpt{
 		AsUser:   true,
 		Username: "notify-gril",
 	}
-	err = api.ChatPostMessage(channel.Id, message, options)
-	if err != nil {
-		log.Printf("Fail to post slack message: err[%s]", err.Error())
-	}
+
+	return api.ChatPostMessage(channel.Id, message, options)
 }
