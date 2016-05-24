@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/jwt"
 	elastic "gopkg.in/olivere/elastic.v3"
 
 	"straas.io/base/ctrl"
@@ -15,14 +18,18 @@ import (
 	"straas.io/base/timeutil"
 	"straas.io/sauron"
 	"straas.io/sauron/core"
+	"straas.io/sauron/program"
 	// externals
+	"straas.io/external"
 	"straas.io/external/elasticsearch"
 	"straas.io/external/pagerduty"
 	"straas.io/external/slack"
+	estackdrive "straas.io/external/stackdriver"
 	// plugins
 	"straas.io/sauron/plugin/alert"
 	"straas.io/sauron/plugin/metric"
 	"straas.io/sauron/plugin/notification"
+	"straas.io/sauron/plugin/stackdriver"
 	// notification sinkers
 	ntyPagerDuty "straas.io/sauron/plugin/notification/pagerduty"
 	ntySlack "straas.io/sauron/plugin/notification/slack"
@@ -49,68 +56,61 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func main() {
-	flag.Parse()
-
-	// setup default time for default http client
-	http.DefaultClient.Timeout = 30 * time.Second
-
-	// create logger
-	if err := logger.SetLevel(*logLevel); err != nil {
-		log.Fatalf("illegal log level %s", *logLevel)
-	}
-	// create clock
-	clock := timeutil.NewRealClock()
-	// create output
-	output := core.NewOutput(*dryRun)
-
-	// parse environemnts
-	envs := strings.Split(*envStr, ",")
-	log.Info("[main] environemnt", envs)
-
-	cfgMgr, err := core.NewFileConfig(*configRoot, *dryRun)
-	if err != nil {
-		log.Fatalf("[main] fail to load create config manager, err:%v", err)
-	}
-
-	// load credential
-	credential, err := loadCredential(cfgMgr, envs)
-	if err != nil {
-		log.Fatalf("[main] fail to load credential, err:%v", err)
-	}
-
+func initMetricPlugin(p sauron.Program, esHosts string) error {
 	// create es client
 	esClient, err := elastic.NewClient(
 		elastic.SetSniff(false),
-		elastic.SetURL(strings.Split(*esHosts, ",")...),
+		elastic.SetURL(strings.Split(esHosts, ",")...),
 		elastic.SetMaxRetries(10))
 	if err != nil {
-		log.Fatalf("[main] fail to creat elasticsearch client, err:%v", err)
+		return err
 	}
+	clock := timeutil.NewRealClock()
+	p.AddPlugin(metric.NewQuery(elasticsearch.New(esClient), clock))
+	return nil
+}
 
-	// create store
-	statusStore, err := core.NewStore()
-	if err != nil {
-		log.Fatalf("[main] fail to init store, err:%v", err)
-	}
+func initStackdrivers(p sauron.Program, envs []string, mainCfg Config) error {
+	proj2sd := map[string]external.Stackdriver{}
+	for _, env := range envs {
+		project, ok := mainCfg.Env2GCP[env]
+		if !ok {
+			return fmt.Errorf("unable to find GCP project for env %s", env)
+		}
+		auth, ok := mainCfg.Credential.GCP[project]
+		if !ok {
+			return fmt.Errorf("unable to find credential for GCP project %s", project)
+		}
 
-	// prepare ticker
-	var ticker <-chan time.Time
-	// dry run only need to tick once immediately
-	if !*dryRun {
-		ticker = time.NewTicker(*tickInterval).C
+		ctx := context.Background()
+		jwtCfg := &jwt.Config{
+			Email:      auth.Email,
+			PrivateKey: []byte(auth.PrivateKey),
+			TokenURL:   google.JWTTokenURL,
+			Scopes:     auth.Scopes,
+		}
+		client := jwtCfg.Client(ctx)
+		sd, err := estackdrive.New(client)
+		if err != nil {
+			return err
+		}
+		proj2sd[project] = sd
 	}
+	clock := timeutil.NewRealClock()
+	p.AddPlugin(stackdriver.NewQuery(proj2sd, mainCfg.Env2GCP, clock))
+	return nil
+}
 
-	// prepare engine factory
-	engFactory := func() sauron.Engine {
-		return core.NewEngine(statusStore, output)
-	}
+func initAlertPlugin(p sauron.Program) error {
+	clock := timeutil.NewRealClock()
+	p.AddPlugin(alert.NewLastFor(clock))
+	p.AddPlugin(alert.NewAlert(clock))
+	return nil
+}
 
-	// load jobs
-	jobs, err := cfgMgr.LoadJobs(envs...)
-	if err != nil {
-		log.Fatalf("[main] fail to load jobs, err:%v", err)
-	}
+func initNtyPlugin(p sauron.Program, cfgMgr sauron.Config, mainCfg Config) error {
+	credential := mainCfg.Credential
+	clock := timeutil.NewRealClock()
 
 	// register sinkers
 	// TODO: es insert sinker
@@ -125,62 +125,73 @@ func main() {
 	// create notifiation
 	ntyPlugin, err := notification.NewNotification(cfgMgr)
 	if err != nil {
+		return fmt.Errorf("[main] fail to init notification plugin, err:%v", err)
+	}
+	p.AddPlugin(ntyPlugin)
+	return nil
+}
+
+func main() {
+	flag.Parse()
+
+	// setup default time for default http client
+	http.DefaultClient.Timeout = 30 * time.Second
+
+	// create logger
+	if err := logger.SetLevel(*logLevel); err != nil {
+		log.Fatalf("[main]illegal log level %s", *logLevel)
+	}
+
+	// envs
+	envs := strings.Split(*envStr, ",")
+	// config manager
+	cfgMgr, err := core.NewFileConfig(*configRoot, *dryRun)
+	if err != nil {
+		log.Fatalf("[main] fail to load create config manager, err:%v", err)
+	}
+
+	// main config
+	mainCfg := Config{}
+	if err := cfgMgr.LoadConfig("sauron", &mainCfg); err != nil {
+		log.Fatalf("[main] fial to load main config, err:%v", err)
+	}
+
+	// create program
+	p, err := program.New(envs, *dryRun, *jobPattern, cfgMgr, *tickInterval)
+	if err != nil {
+		log.Fatalf("[main] fail to create program, err:%v", err)
+	}
+
+	log.Info("[main] register plugins")
+	if err := initMetricPlugin(p, *esHosts); err != nil {
+		log.Fatalf("[main] fail to init metric plugin, err:%v", err)
+	}
+	if err := initStackdrivers(p, envs, mainCfg); err != nil {
+		log.Fatalf("[main] fail to init stackdriver plugin, err:%v", err)
+	}
+	if err := initNtyPlugin(p, cfgMgr, mainCfg); err != nil {
 		log.Fatalf("[main] fail to init notification plugin, err:%v", err)
 	}
-
-	// list all plugin
-	log.Info("[main] register plugins")
-	plugins := []sauron.Plugin{
-		alert.NewLastFor(clock),
-		alert.NewAlert(clock),
-		metric.NewQuery(elasticsearch.New(esClient), clock),
-		ntyPlugin,
-	}
-	for _, p := range plugins {
-		log.Infof("[main] register plugin %s", p.Name())
+	if err := initAlertPlugin(p); err != nil {
+		log.Fatalf("[main] fail to init alert plugin, err:%v", err)
 	}
 
-	// runnerID
-	runnerID := fmt.Sprintf("RN%d", rand.Int63())
-	log.Infof("[main] Sauron runner id %s", runnerID)
+	p.AddEventHandler(func(je sauron.JobEvent) {
+		log.Errorf("[main] runner event %v", je)
+	})
 
-	// create runner
-	runner := core.NewJobRunner(
-		runnerID,
-		engFactory,
-		ticker,
-		statusStore,
-		output,
-		jobs,
-		plugins,
-		clock,
-	)
-
-	log.Info("[main] start to run jobs")
-	runner.Start()
-
-	// TODO: better handling (slack)
-	go func() {
-		for e := range runner.Events() {
-			log.Errorf("[main] runner event %v", e)
-		}
-	}()
+	// start program
+	if err := p.Start(); err != nil {
+		log.Fatalf("[main] fail to start program, err:%v", err)
+	}
 
 	// TODO: Leader election for cluster (if necessary)
 	// TODO: add plugin help msg to "go help" message
 	// TODO: handle graceful shutdown
 	// TODO: dashboard
-	if *dryRun {
-		for _, j := range jobs {
-			if *jobPattern != "" && !strings.Contains(j.JobID, *jobPattern) {
-				continue
-			}
-			if err := runner.RunJob(j); err != nil {
-				log.Fatal(err)
-			}
-		}
-		return
-	}
 
-	log.Fatal(ctrl.RunController(*port))
+	// prepare controller
+	if !*dryRun {
+		log.Fatal(ctrl.RunController(*port))
+	}
 }

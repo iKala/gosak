@@ -18,6 +18,18 @@ type EventCode int32
 // a.k.a P0 is the most severe
 type Severity int
 
+// Program defines an interface for sauron main process
+type Program interface {
+	// AddPlugin add plugins
+	AddPlugin(...Plugin)
+	// AddEventHandler add event handlers
+	AddEventHandler(...func(JobEvent))
+	// Start starts the program
+	Start() error
+	// Stop stops the program
+	Stop() error
+}
+
 // JobMeta represents a job
 type JobMeta struct {
 	// JobID is the job ID

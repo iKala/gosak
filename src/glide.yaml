@@ -50,4 +50,5 @@ import:
   - compute/metadata
 - package: github.com/jarcoal/httpmock
   version: 145b10d659265440f062c31ea15326166bae56ee
-  
+- package: github.com/montanaflynn/stats
+  version: eeaced052adbcfeea372c749c281099ed7fdaa38

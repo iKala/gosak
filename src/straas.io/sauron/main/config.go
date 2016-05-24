@@ -4,6 +4,14 @@ import (
 	"straas.io/sauron"
 )
 
+// Config is main config of sauron
+type Config struct {
+	// Credential refers following struct
+	Credential Credential `json:"credential" yaml:"credential"`
+	// Env2GCP maps env to gcp proejcts
+	Env2GCP map[string]string `json:"env2gcp" yaml:"env2gcp"`
+}
+
 // Credential defines necessary credential info for sauron
 type Credential struct {
 	// SlackToken is access token of slack
@@ -21,14 +29,14 @@ type GCP struct {
 	// PrivatKey is GCP private key of the service account
 	PrivateKey string `json:"private_key" yaml:"private_key"`
 	// Scope is GCP scope
-	Scope []string `json:"scope" yaml:"scope"`
+	Scopes []string `json:"scopes" yaml:"scopes"`
 }
 
-func loadCredential(cfgMgr sauron.Config, envs []string) (*Credential, error) {
+func loadConfig(cfgMgr sauron.Config, envs []string) (Config, error) {
 	// load credential
-	credential := &Credential{}
-	if err := cfgMgr.LoadConfig("credential", credential); err != nil {
-		return nil, err
+	cfg := Config{}
+	if err := cfgMgr.LoadConfig("sauron", &cfg); err != nil {
+		return cfg, err
 	}
-	return credential, nil
+	return cfg, nil
 }
