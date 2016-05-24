@@ -1,7 +1,7 @@
 package main
 
 import (
-	"straas.io/sauron/core"
+	"straas.io/sauron"
 )
 
 // Credential defines necessary credential info for sauron
@@ -24,10 +24,10 @@ type GCP struct {
 	Scope []string `json:"scope" yaml:"scope"`
 }
 
-func loadCredential(cfgMgr core.Config, envs []string) (*Credential, error) {
+func loadCredential(cfgMgr sauron.Config, envs []string) (*Credential, error) {
 	// load credential
 	credential := &Credential{}
-	if err = cfgMgr.LoadConfig("credential", credential); err != nil {
+	if err := cfgMgr.LoadConfig("credential", credential); err != nil {
 		return nil, err
 	}
 	return credential, nil

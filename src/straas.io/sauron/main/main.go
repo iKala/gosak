@@ -74,7 +74,7 @@ func main() {
 	}
 
 	// load credential
-	credential, err = loadCredential(cfgMgr, envs)
+	credential, err := loadCredential(cfgMgr, envs)
 	if err != nil {
 		log.Fatalf("[main] fail to load credential, err:%v", err)
 	}
