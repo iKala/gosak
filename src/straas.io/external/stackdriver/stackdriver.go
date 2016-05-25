@@ -36,7 +36,7 @@ func (s *stackdriverImpl) List(project, filter, op string,
 	case "COUNT", "SUM", "MIN", "MAX":
 		reduce = fmt.Sprintf("REDUCE_%s", op)
 		align = fmt.Sprintf("ALIGN_%s", op)
-	case "avg":
+	case "AVG":
 		reduce = "REDUCE_MEAN"
 		align = "ALIGN_MEAN"
 	default:

@@ -1,0 +1,12 @@
+interval: 1m
+script: |
+  sum = mquery("revealer-collector", "rest.v1.track.proc_time", "value", "sum", "5m", "0m")
+  count = mquery("revealer-collector", "rest.v1.track.proc_time", "count", "sum", "5m", "0m")
+  v = count == 0 ? 0 : sum / count
+  console.log(sum, count, v)
+  alert(
+    "proc_time",
+    notify("backend"),
+    lastFor(v, ">", 15000, "10m"),  // P0
+    lastFor(v, ">", 10000, "5m")    // P1
+  )
