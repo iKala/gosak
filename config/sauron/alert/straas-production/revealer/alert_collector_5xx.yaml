@@ -5,7 +5,7 @@ script: |
   v = v500 / (v200 + v500)
   alert(
     "fail_rate",
-    notify("backend"),
-    lastFor(v, ">", 0.3, "30m"),  // P0
-    lastFor(v, ">", 0.1, "10m")    // P1
+    notify("backend-data"),
+    lastFor(v, ">", 0.3, "30m"),    // P0
+    lastFor(v, ">", 0.1, "10m")     // P1
   )

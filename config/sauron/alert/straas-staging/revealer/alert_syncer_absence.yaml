@@ -1,9 +1,10 @@
 interval: 1m
 script: |
-  count = mquery("revealer-syncer", "syncjob.proc_time", "value", "count", "5m", "0m")
+  v = mquery("revealer-syncer", "syncjob.proc_time", "value", "count", "5m", "0m")
+  console.log("absence=", v)
   alert(
     "absence",
-    notify("backend"),
+    notify("backend-data"),
     lastFor(v, "=", 0, "30m"),  // P0
     lastFor(v, "=", 0, "10m")   // P1
   )

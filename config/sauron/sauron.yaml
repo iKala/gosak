@@ -6,7 +6,7 @@ env2gcp:
   lh-alpha: ikalacomputeenginetest
 
 credential:
-  slack_token: xoxb-18018736162-pOGrLi9GaD3Vm8tfooE74gnb
+  slack_token: xoxb-18018736162-4VAqjSsuouE7jW5wRk3GXFBz
   pagerduty_token: WG2G-xnojDhQPrp8sY47
   gcp:
     straasio-staging:

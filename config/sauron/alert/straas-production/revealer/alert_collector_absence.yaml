@@ -1,7 +1,6 @@
 interval: 1m
 script: |
   v = mquery("revealer-collector", "rest.v1.track.proc_time", "value", "count", "5m", "0m")
-  console.log("absence=", v)
   alert(
     "absence",
     notify("backend-data"),

@@ -2,16 +2,18 @@
 # use temporarly, script will be replaced by kalajan
 # following script is copied from revealer deploy script
 
-RUN_ENV=$1
-TAG=$2
-INIT=$3
+GIT_COMMIT=$(git rev-parse --short HEAD)
+
+RUN_ENV_GROUP=$1
+TAG=${2:-$GIT_COMMIT}
 
 CPU=200m
 MEM=200Mi
 
+PROJECT_ID=ikala-infra
+CLUSTER_NAME=ikala-infra-k8s
 REGION="asia-east1"
 ZONE="asia-east1-b"
-RC_NAME="sauron"
 
 # make a temp file for deploy file
 DEPLOY_FILE=$(mktemp $TMPDIR/$(uuidgen).yaml)
@@ -36,23 +38,23 @@ function escape {
   echo $(echo $1 | sed 's/\//\\\//g')
 }
 
-case "${RUN_ENV}" in
-"straas-staging")
-  PROJECT_ID="straasio-staging"
-  CLUSTER_NAME=$PROJECT_ID
-  ES_HOSTS=http://infra-elasticsearch-straas-staging-1:9200
-  ES_HOSTS=${ES_HOSTS},http://infra-elasticsearch-straas-staging-2:9200
+case "${RUN_ENV_GROUP}" in
+  "staging")
+    RUN_ENV=straas-staging
+    RC_NAME="sauron-staging"
+    ES_HOSTS=http://elasticsearch-main-ikalainfra-staging-1:9200
+    ES_HOSTS=${ES_HOSTS},http://elasticsearch-main-ikalainfra-staging-2:9200
   ;;
-"straas-production")
-  PROJECT_ID="straasio-production"
-  CLUSTER_NAME=$PROJECT_ID
-  ES_HOSTS=http://infra-elasticsearch-straas-production-1:9200
-  ES_HOSTS=${ES_HOSTS},http://infra-elasticsearch-straas-production-2:9200
-  ES_HOSTS=${ES_HOSTS},http://infra-elasticsearch-straas-production-3:9200
+  "production")
+    RUN_ENV=straas-production
+    RC_NAME="sauron-production"
+    ES_HOSTS=http://elasticsearch-main-ikalainfra-production-1:9200
+    ES_HOSTS=${ES_HOSTS},http://elasticsearch-main-ikalainfra-production-2:9200
+    ES_HOSTS=${ES_HOSTS},http://elasticsearch-main-ikalainfra-production-3:9200
   ;;
-*)
-  echo "Unsupported environment. Terminating..."
-  exit 1
+  *)
+    echo "Unsupported environment. Terminating..."
+    exit 1
   ;;
 esac
 
@@ -88,10 +90,8 @@ safeExec gcloud config set project $PROJECT_ID
 #if [[ $(curl -s "http://metadata/computeMetadata/v1/project/project-id" -H "Metadata-Flavor: Google") != $PROJECT_ID ]]; then
 #  safeExec gcloud config set account gcpservieaccount@$PROJECT_ID.iam.gserviceaccount.com
 #fi
-if [[ $INIT != "init" ]]; then
-  safeExec gcloud config set container/cluster $CLUSTER_NAME
-  safeExec gcloud container clusters get-credentials $CLUSTER_NAME
-fi
+safeExec gcloud config set container/cluster $CLUSTER_NAME
+safeExec gcloud container clusters get-credentials $CLUSTER_NAME
 
 $KUBECTL get rc ${RC_NAME} && safeExec $KUBECTL delete rc ${RC_NAME}
 safeExec $KUBECTL create -f $DEPLOY_FILE

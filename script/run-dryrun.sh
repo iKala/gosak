@@ -3,22 +3,22 @@
 # note that this script MUST run in project root
 
 RUN_ENV=$1
-DEFAULTIMG=gcr.io/straasio-staging/sauron:latest
+DEFAULTIMG=gcr.io/ikala-infra/sauron:latest
 IMAGE=${2:-$DEFAULTIMG}
 
 # prepare variables for different env
 case "$RUN_ENV" in
   "straas-production")
-    ES_HOSTS=http://104.155.232.6:9200
+    ES_HOSTS=http://104.199.163.233:9200
   ;;
   "straas-staging")
-    ES_HOSTS=http://104.155.238.191:9200
+    ES_HOSTS=http://104.199.161.243:9200
   ;;
   "lh-production")
-    ES_HOSTS=http://104.155.229.57:9200
+    ES_HOSTS=http://104.199.163.233:9200
   ;;
   "lh-alpha")
-    ES_HOSTS=http://104.155.229.57:9200
+    ES_HOSTS=http://104.199.161.243:9200
   ;;
   *)
     echo "no such project ${PROJECT}"
@@ -26,7 +26,7 @@ case "$RUN_ENV" in
   ;;
 esac
 
-gcloud docker --project straasio-staging pull $IMAGE
+gcloud docker --project ikala-infra pull $IMAGE
 docker run -it --rm \
   -v $(pwd)/config/sauron:/configForDryrun \
   ${IMAGE} \

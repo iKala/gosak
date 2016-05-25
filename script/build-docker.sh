@@ -81,8 +81,6 @@ safe_exec docker cp ${CONTAINER_NAME}:/go/bin/main ${BUILD_FOLDER}/main
 safe_exec docker build -t ${IMG_TAG} -f Dockerfile.run .
 
 # push images to registry
-push_docker straasio-staging
-#push_docker straasio-production
-#push_docker ikalacomputeenginetest
+push_docker ikala-infra
 
 clean_up

@@ -1,0 +1,13 @@
+interval: 2m
+script: |
+  filter = [
+    'metric.type="compute.googleapis.com/instance/cpu/utilization"',
+    'metric.label.instance_name=starts_with("revealer-syncer-straas-")'
+  ].join(" AND ")
+  v = squery(filter, "avg", "5m", "0m")
+  alert(
+    "outstanding",
+    notify("backend-data"),
+    lastFor(v, ">", 0.9,  "30m"),  // P0
+    lastFor(v, ">", 0.75, "10m")   // P1
+  )

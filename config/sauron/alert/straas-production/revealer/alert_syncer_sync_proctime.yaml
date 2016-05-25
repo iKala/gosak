@@ -6,7 +6,7 @@ script: |
   console.log(sum, count, v)
   alert(
     "proc_time",
-    notify("backend"),
+    notify("backend-data"),
     lastFor(v, ">", 15000, "30m"),  // P0
     lastFor(v, ">", 10000, "10m")   // P1
   )
