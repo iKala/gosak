@@ -8,5 +8,5 @@ script: |
     "proc_time",
     notify("backend"),
     lastFor(v, ">", 15000, "30m"),  // P0
-    lastFor(v, ">", 10000, "5m")    // P1
+    lastFor(v, ">", 10000, "10m")   // P1
   )
