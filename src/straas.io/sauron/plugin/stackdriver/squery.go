@@ -75,8 +75,8 @@ func (p *squeryPlugin) Run(ctx sauron.PluginContext) error {
 		return err
 	}
 	if value == nil {
-		// TBD: nil or zero ?
-		return ctx.Return(nil)
+		// return 0
+		return ctx.Return(0)
 	}
 	return ctx.Return(*value)
 }

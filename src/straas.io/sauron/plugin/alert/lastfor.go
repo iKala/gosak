@@ -2,6 +2,7 @@ package alert
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"straas.io/base/logger"
@@ -182,6 +183,9 @@ func (p *lastForPlugin) HelpMsg() string {
 }
 
 func opMatch(vLeft float64, op string, vRight float64) (bool, error) {
+	if math.IsInf(vLeft, 0) || math.IsInf(vRight, 0) {
+		return false, nil
+	}
 	switch op {
 	case ">":
 		return vLeft > vRight, nil

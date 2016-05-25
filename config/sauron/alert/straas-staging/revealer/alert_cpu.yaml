@@ -5,10 +5,7 @@ script: |
   cputime = squery(
     'metric.type="compute.googleapis.com/instance/cpu/usage_time"',
     "sum", "5m", "1m")
-
   v = sum / (count + 0.1)
-  console.log("v", v)
-  console.log("cputime", cputime)
   alert(
     "cpu",
     notify("backend"),

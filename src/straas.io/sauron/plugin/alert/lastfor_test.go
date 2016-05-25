@@ -1,6 +1,7 @@
 package alert
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -135,6 +136,35 @@ func (s *lastforTestSuite) TestOperator() {
 	s.NoError(err)
 	s.True(match)
 
+	match, err = opMatch(math.Inf(1), ">", 10)
+	s.NoError(err)
+	s.False(match)
+	match, err = opMatch(math.Inf(1), "<", 10)
+	s.NoError(err)
+	s.False(match)
+	match, err = opMatch(math.Inf(1), "=", 20)
+	s.NoError(err)
+	s.False(match)
+
+	match, err = opMatch(1, ">", math.Inf(-1))
+	s.NoError(err)
+	s.False(match)
+	match, err = opMatch(1, "<", math.Inf(-1))
+	s.NoError(err)
+	s.False(match)
+	match, err = opMatch(1, "=", math.Inf(-1))
+	s.NoError(err)
+	s.False(match)
+
+	match, err = opMatch(math.Inf(1), ">", math.Inf(-1))
+	s.NoError(err)
+	s.False(match)
+	match, err = opMatch(math.Inf(1), "<", math.Inf(-1))
+	s.NoError(err)
+	s.False(match)
+	match, err = opMatch(math.Inf(1), "=", math.Inf(-1))
+	s.NoError(err)
+	s.False(match)
 }
 
 func (s *lastforTestSuite) TestIllegalInput() {

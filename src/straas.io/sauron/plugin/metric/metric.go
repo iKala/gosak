@@ -3,6 +3,7 @@ package metric
 import (
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"straas.io/base/timeutil"
@@ -113,15 +114,24 @@ func (p *metricQueryPlugin) doQuery(now time.Time, env, modulePattern, namePatte
 		return nil, err
 	}
 
-	return p.es.Scalar(
+	result, err := p.es.Scalar(
 		indices,
-		fmt.Sprintf(`env=%s AND module=%s AND name=%s`, env, modulePattern, namePattern),
+		fmt.Sprintf(`env:%s AND module:%s AND name:%s`, env,
+			escape(modulePattern), escape(namePattern)),
 		*timeField,
 		st, en,
 		field,
 		op,
 		true,
 	)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		v := float64(0.0)
+		result = &v
+	}
+	return result, nil
 }
 
 // getIndices generates search indices according to time range and flag
@@ -148,4 +158,16 @@ func getIndices(start, end time.Time) ([]string, error) {
 			start.Format("2006.01.02"), end.Format("2006.01.02"))
 	}
 	return result, nil
+}
+
+// escape handles name with numeric char, numberic char must be quoted
+func escape(s string) string {
+	// alreay quoted
+	if strings.HasPrefix(s, `"`) {
+		return s
+	}
+	if !strings.ContainsAny(s, "1234567890") {
+		return s
+	}
+	return fmt.Sprintf(`"%s"`, s)
 }

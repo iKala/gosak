@@ -86,7 +86,7 @@ func (s *metricTestSuite) TestArgument() {
 	result := 6.0
 	s.mockES.On("Scalar",
 		[]string{"metric-2016.02", "metric-2016.03"},
-		`env=some-prod AND module=test-module AND name=test-name`,
+		`env:some-prod AND module:test-module AND name:test-name`,
 		"@timestamp",
 		now.Add(-48*time.Hour),
 		now.Add(-1*time.Minute),
@@ -99,4 +99,9 @@ func (s *metricTestSuite) TestArgument() {
 	s.NoError(err)
 	s.mockES.AssertExpectations(s.T())
 	ctx.AssertExpectations(s.T())
+}
+
+func (s *metricTestSuite) TestEscape() {
+	s.Equal(`abcd.def`, escape("abcd.def"))
+	s.Equal(`"a380asdfsd"`, escape("a380asdfsd"))
 }

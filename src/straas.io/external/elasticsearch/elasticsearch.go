@@ -44,7 +44,7 @@ func (s *esImpl) Scalar(indices []string, queryStr, timeField string, start, end
 	// perform wildcard search
 	filter := elastic.NewQueryStringQuery(queryStr).AnalyzeWildcard(wildcard)
 	aggr := elastic.NewExtendedStatsAggregation().Field(field)
-	source := elastic.NewSearchSource().Size(0)
+	source := elastic.NewSearchSource()
 	source = source.Query(elastic.NewBoolQuery().Must(query, filter))
 	source = source.Aggregation(aggrName, aggr)
 
