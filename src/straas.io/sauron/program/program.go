@@ -66,7 +66,6 @@ func (p *programImpl) AddEventHandler(handlers ...func(sauron.JobEvent)) {
 }
 
 func (p *programImpl) Start() error {
-	// create clock
 	log.Info("[program] environemnt", p.envs)
 
 	// prepare job runner
