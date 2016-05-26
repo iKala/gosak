@@ -21,6 +21,7 @@ function rc_cfg {
       metadata:
         labels:
           app: sauron
+          env_group: ${RUN_ENV_GROUP}
       spec:
         containers:
         - name: sauron
@@ -62,11 +63,10 @@ case "${RUN_ENV_GROUP}" in
   ;;
 esac
 
-echo "Start to deploy ${IMAGE} to ${RUN_ENV} ..."
-
 IMAGE=gcr.io/${PROJECT_ID}/sauron:${TAG}
 CPU=200m
 MEM=200Mi
 
-#k8s_delete_rc ${RC_NAME}
+echo "Start to deploy ${IMAGE} to ${RUN_ENV} ..."
+k8s_delete_rc ${RC_NAME}
 rc_cfg | k8s_create || exit 1
