@@ -139,7 +139,7 @@ func main() {
 
 	// create logger
 	if err := logger.SetLevel(*logLevel); err != nil {
-		log.Fatalf("[main]illegal log level %s", *logLevel)
+		log.Fatalf("[main] illegal log level %s", *logLevel)
 	}
 
 	// envs

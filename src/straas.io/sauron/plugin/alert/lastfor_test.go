@@ -35,17 +35,17 @@ func (s *lastforTestSuite) SetupTest() {
 
 func (s *lastforTestSuite) TestUpdateStatusNotMatched() {
 	info := &lastForInfo{
-		lastMatched: s.clock.Now().Unix(),
+		LastMatched: s.clock.Now().Unix(),
 	}
 
 	trigger := s.plugin.updateStatus(false, time.Minute, info)
 	s.False(trigger)
-	s.Equal(info.lastMatched, int64(0))
+	s.Equal(info.LastMatched, int64(0))
 }
 
 func (s *lastforTestSuite) TestUpdateStatusRightNow() {
 	info := &lastForInfo{
-		lastMatched: s.clock.Now().Unix(),
+		LastMatched: s.clock.Now().Unix(),
 	}
 	trigger := s.plugin.updateStatus(true, 0, info)
 	s.True(trigger)
@@ -53,33 +53,33 @@ func (s *lastforTestSuite) TestUpdateStatusRightNow() {
 
 func (s *lastforTestSuite) TestUpdateStatusFirstMet() {
 	info := &lastForInfo{
-		lastMatched: 0,
+		LastMatched: 0,
 	}
 	trigger := s.plugin.updateStatus(true, time.Minute, info)
 	s.False(trigger)
-	s.Equal(info.lastMatched, s.clock.Now().Unix())
+	s.Equal(info.LastMatched, s.clock.Now().Unix())
 }
 
 func (s *lastforTestSuite) TestUpdateStatusNotYet() {
 	t1 := time.Now().Unix()
 	info := &lastForInfo{
-		lastMatched: t1,
+		LastMatched: t1,
 	}
 	s.clock.Incr(time.Minute)
 	trigger := s.plugin.updateStatus(true, time.Hour, info)
 	s.False(trigger)
-	s.Equal(info.lastMatched, t1)
+	s.Equal(info.LastMatched, t1)
 }
 
 func (s *lastforTestSuite) TestUpdateStatusTrigger() {
 	t1 := time.Now().Unix()
 	info := &lastForInfo{
-		lastMatched: t1,
+		LastMatched: t1,
 	}
 	s.clock.Incr(time.Hour)
 	trigger := s.plugin.updateStatus(true, time.Minute, info)
 	s.True(trigger)
-	s.Equal(info.lastMatched, t1)
+	s.Equal(info.LastMatched, t1)
 }
 
 func (s *lastforTestSuite) TestOperator() {
@@ -207,7 +207,7 @@ func (s *lastforTestSuite) TestComparsion() {
 	v1, _ := s.eng.Get("a")
 	v2, _ := s.eng.Get("b")
 
-	s.Equal("xxx 4.200000 >= 3.300000", v1)
+	s.Equal("xxx 4.20 >= 3.30", v1)
 	s.Equal(true, v2)
 }
 
@@ -220,7 +220,7 @@ func (s *lastforTestSuite) TestComparsionNotMatched() {
 	v1, _ := s.eng.Get("a")
 	v2, _ := s.eng.Get("b")
 
-	s.Equal("xxx 7.000000 < 5.000000", v1)
+	s.Equal("xxx 7.00 < 5.00", v1)
 	s.Equal(false, v2)
 }
 

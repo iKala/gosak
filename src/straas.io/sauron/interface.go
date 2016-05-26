@@ -20,7 +20,7 @@ type Severity int
 
 // Program defines an interface for sauron main process
 type Program interface {
-	// AddPlugin add plugins
+	// AddPlugin main.go_add plugins
 	AddPlugin(...Plugin)
 	// AddEventHandler add event handlers
 	AddEventHandler(...func(JobEvent))
@@ -145,7 +145,6 @@ type Output interface {
 }
 
 // Config manages the config
-// TODO: not implement yet
 type Config interface {
 	// LoadJobs loads jobs of the given env
 	LoadJobs(envs ...string) ([]JobMeta, error)
