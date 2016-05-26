@@ -6,17 +6,14 @@ import (
 	"strings"
 	"time"
 
-	elastic "gopkg.in/olivere/elastic.v3"
-
 	"straas.io/base/timeutil"
+	"straas.io/external"
 	"straas.io/sauron"
 )
 
 const (
 	// max query time range
 	maxQueryTimeRange = 90 * 24 * time.Hour // 3 month
-	// query stat name
-	aggrName = "stat"
 )
 
 var (
@@ -26,17 +23,17 @@ var (
 )
 
 // NewQuery create a metric query plugin
-func NewQuery(client *elastic.Client, clock timeutil.Clock) sauron.Plugin {
+func NewQuery(es external.Elasticsearch, clock timeutil.Clock) sauron.Plugin {
 	return &metricQueryPlugin{
-		client: client,
-		clock:  clock,
+		es:    es,
+		clock: clock,
 	}
 }
 
 // TODO: leverage LUR cache for better performance
 type metricQueryPlugin struct {
-	client *elastic.Client
-	clock  timeutil.Clock
+	es    external.Elasticsearch
+	clock timeutil.Clock
 }
 
 func (p *metricQueryPlugin) Name() string {
@@ -95,75 +92,46 @@ func (p *metricQueryPlugin) HelpMsg() string {
 	return "<NO HELP MSG>"
 }
 
-// doSerach for testing purpose
-var doSearch = func(client *elastic.Client, source *elastic.SearchSource, indices []string) (*elastic.SearchResult, error) {
-	search := client.Search()
-	search.Index(indices...)
-
-	return search.SearchSource(source).Do()
-}
-
 func (p *metricQueryPlugin) doQuery(now time.Time, env, modulePattern, namePattern,
 	field, op, sduration, eduration string) (*float64, error) {
 
-	source, indices, err := makeQuery(now, env, modulePattern, namePattern,
-		field, op, sduration, eduration)
+	start, err := time.ParseDuration(sduration)
 	if err != nil {
 		return nil, err
 	}
-
-	// do query
-	result, err := doSearch(p.client, source, indices)
-	if err != nil {
-		return nil, fmt.Errorf("query fail %v", err)
-	}
-	return handleResult(result, op)
-}
-
-func makeQuery(now time.Time, env, modulePattern, namePattern,
-	field, op, sduration, eduration string) (*elastic.SearchSource, []string, error) {
-
-	// make op case insensitive
-	op = strings.ToLower(op)
-	// check op
-	switch op {
-	case "count", "sum", "avg", "min", "max":
-	default:
-		return nil, nil, fmt.Errorf("illegal op %s", op)
-	}
-
-	start, err := time.ParseDuration(sduration)
-	if err != nil {
-		return nil, nil, err
-	}
 	end, err := time.ParseDuration(eduration)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	st := now.Add(time.Duration(-start))
 	en := now.Add(time.Duration(-end))
 	if en.Sub(st) > maxQueryTimeRange {
-		return nil, nil, fmt.Errorf("exceed max query range %v", maxQueryTimeRange)
+		return nil, fmt.Errorf("exceed max query range %v", maxQueryTimeRange)
 	}
 	// get elastic query indices
 	indices, err := getIndices(st, en)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	// make query request
-	query := elastic.NewRangeQuery(*timeField).Gte(st).Lte(en)
-	// perform wildcard search
-	filter := elastic.NewQueryStringQuery(
-		fmt.Sprintf(`env=%s AND module=%s AND name=%s`, env, modulePattern, namePattern),
-	).AnalyzeWildcard(true)
-
-	aggr := elastic.NewExtendedStatsAggregation().Field(field)
-	source := elastic.NewSearchSource().Size(0)
-	source = source.Query(elastic.NewBoolQuery().Must(query, filter))
-	source = source.Aggregation(aggrName, aggr)
-
-	return source, indices, nil
+	result, err := p.es.Scalar(
+		indices,
+		fmt.Sprintf(`env:%s AND module:%s AND name:%s`, env,
+			escape(modulePattern), escape(namePattern)),
+		*timeField,
+		st, en,
+		field,
+		op,
+		true,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		v := float64(0.0)
+		result = &v
+	}
+	return result, nil
 }
 
 // getIndices generates search indices according to time range and flag
@@ -192,28 +160,14 @@ func getIndices(start, end time.Time) ([]string, error) {
 	return result, nil
 }
 
-// handleResult converts aggr result to float pointer or return error
-func handleResult(result *elastic.SearchResult, op string) (*float64, error) {
-	if result.TimedOut {
-		return nil, fmt.Errorf("query timeout")
+// escape handles name with numeric char, numberic char must be quoted
+func escape(s string) string {
+	// alreay quoted
+	if strings.HasPrefix(s, `"`) {
+		return s
 	}
-	stats, ok := result.Aggregations.Stats(aggrName)
-	if !ok {
-		return nil, fmt.Errorf("no result aggregation (probably connection problem)")
+	if !strings.ContainsAny(s, "1234567890") {
+		return s
 	}
-	switch op {
-	case "min":
-		return stats.Min, nil
-	case "max":
-		return stats.Max, nil
-	case "avg":
-		return stats.Avg, nil
-	case "sum":
-		return stats.Sum, nil
-	case "count":
-		fv := float64(stats.Count)
-		return &fv, nil
-	default:
-		return nil, fmt.Errorf("no such field %s", op)
-	}
+	return fmt.Sprintf(`"%s"`, s)
 }

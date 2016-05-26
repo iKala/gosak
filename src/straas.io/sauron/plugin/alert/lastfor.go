@@ -2,6 +2,8 @@ package alert
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 	"time"
 
 	"straas.io/base/logger"
@@ -43,7 +45,7 @@ type lastForPlugin struct {
 }
 
 type lastForInfo struct {
-	lastMatched int64 // unixtimestamp
+	LastMatched int64 // unixtimestamp
 }
 
 func (p *lastForPlugin) Name() string {
@@ -110,7 +112,9 @@ func (p *lastForPlugin) runCompare(ctx sauron.PluginContext) error {
 	if err != nil {
 		return err
 	}
-	return p.lastFor(match, dur, fmt.Sprintf("%f %s %f", vLeft, op, vRight), ctx)
+	sLeft := strconv.FormatFloat(vLeft, 'f', 2, 64)
+	sRight := strconv.FormatFloat(vRight, 'f', 2, 64)
+	return p.lastFor(match, dur, fmt.Sprintf("%s %s %s", sLeft, op, sRight), ctx)
 }
 
 func (p *lastForPlugin) lastFor(matched bool, dur time.Duration, term string,
@@ -153,27 +157,28 @@ func (p *lastForPlugin) lastFor(matched bool, dur time.Duration, term string,
 }
 
 // updateStatus updates status and decides whether trigger alert or not
-func (p *lastForPlugin) updateStatus(match bool, dur time.Duration, info *lastForInfo) bool {
+func (p *lastForPlugin) updateStatus(match bool, threshold time.Duration, info *lastForInfo) bool {
 	if !match {
-		info.lastMatched = 0
+		info.LastMatched = 0
 		return false
 	}
 	// following are matched
-	// dur is zero, fire immediately
-	if dur == 0 {
+	// threshold is zero, fire immediately
+	if threshold == 0 {
 		return true
 	}
 	now := p.clock.Now()
 	// first meet the condition, record only
-	if info.lastMatched == 0 {
-		info.lastMatched = now.Unix()
+	if info.LastMatched == 0 {
+		info.LastMatched = now.Unix()
 		return false
 	}
-	lmTime := time.Unix(info.lastMatched, 0)
-	// TBD: allowed error
-	if now.Sub(lmTime) >= dur {
+	lmTime := time.Unix(info.LastMatched, 0)
+	dur := now.Sub(lmTime)
+	if dur >= threshold {
 		return true
 	}
+	log.Infof("last for %d seconds", dur/time.Second)
 	return false
 }
 
@@ -182,6 +187,9 @@ func (p *lastForPlugin) HelpMsg() string {
 }
 
 func opMatch(vLeft float64, op string, vRight float64) (bool, error) {
+	if math.IsInf(vLeft, 0) || math.IsInf(vRight, 0) {
+		return false, nil
+	}
 	switch op {
 	case ">":
 		return vLeft > vRight, nil

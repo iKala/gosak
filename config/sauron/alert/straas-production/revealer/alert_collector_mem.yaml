@@ -1,0 +1,19 @@
+interval: 2m
+script: |
+  filter1 = [
+    'metric.type="container.googleapis.com/container/memory/bytes_total"',
+    'resource.label.container_name="collector"'
+  ].join(" AND ")
+  filter2 = [
+    'metric.type="container.googleapis.com/container/memory/bytes_used"',
+    'resource.label.container_name="collector"'
+  ].join(" AND ")
+  total = squery(filter1, "avg", "5m", "0m")
+  used = squery(filter2, "avg", "5m", "0m")
+  v = used / total
+  alert(
+    "outstanding",
+    notify("backend-data"),
+    lastFor(v, ">", 0.9, "30m"),  // P0
+    lastFor(v, ">", 0.75, "10m")  // P1
+  )

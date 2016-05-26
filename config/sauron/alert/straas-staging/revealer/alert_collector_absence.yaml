@@ -1,0 +1,10 @@
+interval: 1m
+script: |
+  v = mquery("revealer-collector", "rest.v1.track.proc_time", "value", "count", "5m", "0m")
+  console.log("absence=", v)
+  alert(
+    "absence",
+    notify("backend-data"),
+    lastFor(v, "=", 0, "30m"),  // P0
+    lastFor(v, "=", 0, "10m")   // P1
+  )

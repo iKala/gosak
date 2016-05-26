@@ -32,3 +32,23 @@ import:
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
   - query
+- package: google.golang.org/api
+  version: 7059a7f3d456870ff1e8424a6b1f62abe5f95f36
+  subpackages:
+  - monitoring/v3
+- package: golang.org/x/net
+  version: 8a52c78636f6b7be1b1e5cb58b01a85f1e082659
+  subpackages:
+  - context
+- package: golang.org/x/oauth2
+  version: e86e2718db89775a4604abc10a5d3a5672e7336e
+  subpackages:
+  - google
+- package: google.golang.org/cloud
+  version: 4f2a141928415b2748b2277f2a673da68863fb5c
+  subpackages:
+  - compute/metadata
+- package: github.com/jarcoal/httpmock
+  version: 145b10d659265440f062c31ea15326166bae56ee
+- package: github.com/montanaflynn/stats
+  version: eeaced052adbcfeea372c749c281099ed7fdaa38

@@ -1,0 +1,11 @@
+interval: 1m
+script: |
+  v200 = mquery("revealer-collector", "rest.v1.track.s200", "value", "sum", "5m", "0m")
+  v500 = mquery("revealer-collector", "rest.v1.track.s500", "value", "sum", "5m", "0m")
+  v = v500 / (v200 + v500)
+  alert(
+    "fail_rate",
+    notify("backend-data"),
+    lastFor(v, ">", 0.3, "30m"),    // P0
+    lastFor(v, ">", 0.1, "10m")     // P1
+  )

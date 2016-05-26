@@ -68,7 +68,7 @@ func (s *alertTestSuite) TestNormalToP0() {
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
 			sauron.Severity(0), false,
-			"Incident test-job-id#cpu.P0 10.000000 > 5.000000",
+			"Incident test-job-id#cpu.P0 10.00 > 5.00",
 		},
 	})
 }
@@ -85,7 +85,7 @@ func (s *alertTestSuite) TestNormalToP1() {
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
 			sauron.Severity(1), false,
-			"Incident test-job-id#cpu.P1 5.000000 > 3.000000",
+			"Incident test-job-id#cpu.P1 5.00 > 3.00",
 		},
 	})
 }
@@ -105,7 +105,7 @@ func (s *alertTestSuite) TestP1ToP0() {
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
 			sauron.Severity(0), false,
-			"Incident test-job-id#cpu.P0 10.000000 > 5.000000",
+			"Incident test-job-id#cpu.P0 10.00 > 5.00",
 		},
 	})
 }
@@ -126,11 +126,11 @@ func (s *alertTestSuite) TestP1ToP2() {
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
 			sauron.Severity(1), true,
-			"Resolve test-job-id#cpu.P1 2.000000 > 3.000000",
+			"Resolve test-job-id#cpu.P1 2.00 > 3.00",
 		},
 		[]interface{}{
 			sauron.Severity(2), false,
-			"Incident test-job-id#cpu.P2 2.000000 > 1.000000",
+			"Incident test-job-id#cpu.P2 2.00 > 1.00",
 		},
 	})
 }
@@ -151,7 +151,7 @@ func (s *alertTestSuite) TestP1ToNormal() {
 	s.Equal(s.notifies, [][]interface{}{
 		[]interface{}{
 			sauron.Severity(1), true,
-			"Resolve test-job-id#cpu.P1 0.000000 > 3.000000",
+			"Resolve test-job-id#cpu.P1 0.00 > 3.00",
 		},
 	})
 }
