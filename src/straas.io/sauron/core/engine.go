@@ -32,8 +32,6 @@ type engineImpl struct {
 	store  sauron.Store
 	output sauron.Output
 	meta   sauron.JobMeta
-	// using atomic for swap
-	halt int64
 }
 
 func (e *engineImpl) SetJobMeta(meta sauron.JobMeta) error {
