@@ -109,15 +109,14 @@ func (p *metricQueryPlugin) doQuery(now time.Time, env, modulePattern, namePatte
 		return nil, fmt.Errorf("exceed max query range %v", maxQueryTimeRange)
 	}
 	// get elastic query indices
-	indices, err := getIndices(st, en)
+	indices, err := getIndices(env, st, en)
 	if err != nil {
 		return nil, err
 	}
 
 	result, err := p.es.Scalar(
 		indices,
-		fmt.Sprintf(`env:%s AND module:%s AND name:%s`, env,
-			escape(modulePattern), escape(namePattern)),
+		fmt.Sprintf(`module:%s AND name:%s`, escape(modulePattern), escape(namePattern)),
 		*timeField,
 		st, en,
 		field,
@@ -135,14 +134,14 @@ func (p *metricQueryPlugin) doQuery(now time.Time, env, modulePattern, namePatte
 }
 
 // getIndices generates search indices according to time range and flag
-func getIndices(start, end time.Time) ([]string, error) {
+func getIndices(env string, start, end time.Time) ([]string, error) {
 	// TODO: handle too large range to protect elasticsearch
 	// querying with lots of indices cost a large amount of memory
 	result := []string{}
 	cur := start.UTC().Truncate(24 * time.Hour)
 	preIdx := ""
 	for cur.Before(end) {
-		idx := fmt.Sprintf("%s-%s", *indexPrefix, cur.Format(*datePattern))
+		idx := fmt.Sprintf("%s-%s-%s", *indexPrefix, env, cur.Format(*datePattern))
 		// bypass same index
 		if idx != preIdx {
 			preIdx = idx
