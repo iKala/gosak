@@ -1,6 +1,6 @@
 interval: 1m
 script: |
-  v = mquery("revealer-collector", "rest.v1.track.proc_time", "value", "count", "5m", "0m")
+  v = mquery("revealer-collector", "sys.cpu_usage", "value", "count", "5m", "0m")
   alert(
     "absence",
     notify("backend-data"),

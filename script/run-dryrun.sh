@@ -34,4 +34,4 @@ docker run -it --rm \
   -configRoot=/configForDryrun \
   -logLevel=error \
   -esHosts=${ES_HOSTS} \
-  -envs=${RUN_ENV} $@
+  -envs=${RUN_ENV}
