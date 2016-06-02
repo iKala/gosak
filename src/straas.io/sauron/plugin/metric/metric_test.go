@@ -48,24 +48,24 @@ func (s *metricTestSuite) TestIndices() {
 	end, _ := time.Parse(time.RFC3339, "2016-02-05T15:04:05+08:00")
 	end2, _ := time.Parse(time.RFC3339, "2016-05-05T15:04:05+08:00")
 
-	indices, err := getIndices(start, end)
+	indices, err := getIndices(testEnv, start, end)
 
 	s.NoError(err)
 	s.Equal(indices, []string{
-		"metric-2016.02",
+		"metric-some-prod-2016.02",
 	})
 
-	indices, err = getIndices(start, end2)
+	indices, err = getIndices(testEnv, start, end2)
 	s.NoError(err)
 	s.Equal(indices, []string{
-		"metric-2016.02",
-		"metric-2016.03",
-		"metric-2016.04",
-		"metric-2016.05",
+		"metric-some-prod-2016.02",
+		"metric-some-prod-2016.03",
+		"metric-some-prod-2016.04",
+		"metric-some-prod-2016.05",
 	})
 
 	// illegal range
-	_, err = getIndices(end, start)
+	_, err = getIndices(testEnv, end, start)
 	s.Error(err)
 }
 
@@ -85,8 +85,8 @@ func (s *metricTestSuite) TestArgument() {
 
 	result := 6.0
 	s.mockES.On("Scalar",
-		[]string{"metric-2016.02", "metric-2016.03"},
-		`env:some-prod AND module:test-module AND name:test-name`,
+		[]string{"metric-some-prod-2016.02", "metric-some-prod-2016.03"},
+		`module:test-module AND name:test-name`,
 		"@timestamp",
 		now.Add(-48*time.Hour),
 		now.Add(-1*time.Minute),
