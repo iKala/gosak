@@ -1,7 +1,7 @@
 package gosak
 
 import (
-	"encoding/base32"
+	"encoding/hex"
 	"log"
 	"testing"
 
@@ -18,16 +18,10 @@ func TestAes128Encrypt(t *testing.T) {
 	testedData := "0020e26f71144c8bada2ba1aa274449b-1448934753"
 	log.Printf("data: %s", testedData)
 
-	encode := func(data []byte) string {
-		return base32.StdEncoding.EncodeToString(data)
-	}
-	encrypted, _ := Aes128Encrypt("livehouse1234567", "abcdef1234567890", testedData, encode)
+	encrypted, _ := Aes128Encrypt("livehouse1234567", "abcdef1234567890", testedData, hex.EncodeToString)
 	log.Printf("encrypted: %s", encrypted)
 
-	decode := func(data string) ([]byte, error) {
-		return base32.StdEncoding.DecodeString(data)
-	}
-	decrypted, _ := Aes128Decrypt("livehouse1234567", "abcdef1234567890", encrypted, decode)
+	decrypted, _ := Aes128Decrypt("livehouse1234567", "abcdef1234567890", encrypted, hex.DecodeString)
 	log.Printf("decrypted: %s", decrypted)
 
 	assert.Equal(t, testedData, decrypted)
