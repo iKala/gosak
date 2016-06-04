@@ -1,0 +1,15 @@
+interval: 1m
+script: |
+  v200 = mquery("message", "req.remove.user.s200", "value", "sum", "5m", "0m")
+  v401 = mquery("message", "req.remove.user.s401", "value", "sum", "5m", "0m")
+  v403 = mquery("message", "req.remove.user.s403", "value", "sum", "5m", "0m")
+  v404 = mquery("message", "req.remove.user.s404", "value", "sum", "5m", "0m")
+  v409 = mquery("message", "req.remove.user.s409", "value", "sum", "5m", "0m")
+  v500 = mquery("message", "req.remove.user.s500", "value", "sum", "5m", "0m")
+  v = (v401 + v403 + v404 + v409 + v500) / (v200 + v401 + v403 + v404 + v409 + v500)
+  alert(
+    "fail_rate",
+    notify("backend-data"),
+    lastFor(v, ">", 0.3, "30m"),    // P0
+    lastFor(v, ">", 0.1, "10m")     // P1
+  )

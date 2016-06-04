@@ -1,0 +1,13 @@
+interval: 1m
+script: |
+  v200 = mquery("record", "req.get.meta.s200", "value", "sum", "5m", "0m")
+  v400 = mquery("record", "req.get.meta.s400", "value", "sum", "5m", "0m")
+  v404 = mquery("record", "req.get.meta.s404", "value", "sum", "5m", "0m")
+  v502 = mquery("record", "req.get.meta.s502", "value", "sum", "5m", "0m")
+  v = (v400 + v404 + v502) / (v200 + v400 + v404 + v502)
+  alert(
+    "fail_rate",
+    notify("backend-data"),
+    lastFor(v, ">", 0.3, "30m"),    // P0
+    lastFor(v, ">", 0.2, "10m")     // P1
+  )

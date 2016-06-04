@@ -1,0 +1,11 @@
+interval: 1m
+script: |
+  sum   = mquery("record", "req.get.record.proc_time", "value", "sum", "5m", "0m")
+  count = mquery("record", "req.get.record.proc_time", "count", "sum", "5m", "0m")
+  v = count == 0 ? 0 : sum / count
+  alert(
+    "proc_time",
+    notify("backend-data"),
+    lastFor(v, ">", 10000, "10m"),  // P0
+    lastFor(v, ">", 8000, "5m")    // P1
+  )
