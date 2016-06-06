@@ -1,10 +1,8 @@
 interval: 1m
 script: |
+  vAll = mquery("record", "req.get.meta.proc_time", "count", "sum", "5m", "0m")
   v200 = mquery("record", "req.get.meta.s200", "value", "sum", "5m", "0m")
-  v400 = mquery("record", "req.get.meta.s400", "value", "sum", "5m", "0m")
-  v404 = mquery("record", "req.get.meta.s404", "value", "sum", "5m", "0m")
-  v502 = mquery("record", "req.get.meta.s502", "value", "sum", "5m", "0m")
-  v = (v400 + v404 + v502) / (v200 + v400 + v404 + v502)
+  v = vAll == 0 ? 0 : (vAll - v200) / vAll
   alert(
     "fail_rate",
     notify("backend-data"),

@@ -1,12 +1,8 @@
 interval: 1m
 script: |
+  vAll = mquery("message", "req.add.msg.proc_time", "count", "sum", "5m", "0m")
   v200 = mquery("message", "req.add.msg.s200", "value", "sum", "5m", "0m")
-  v401 = mquery("message", "req.add.msg.s401", "value", "sum", "5m", "0m")
-  v403 = mquery("message", "req.add.msg.s403", "value", "sum", "5m", "0m")
-  v404 = mquery("message", "req.add.msg.s404", "value", "sum", "5m", "0m")
-  v409 = mquery("message", "req.add.msg.s409", "value", "sum", "5m", "0m")
-  v500 = mquery("message", "req.add.msg.s500", "value", "sum", "5m", "0m")
-  v = (v401 + v403 + v404 + v409 + v500) / (v200 + v401 + v403 + v404 + v409 + v500)
+  v = vAll == 0 ? 0 : (vAll - v200) / vAll
   alert(
     "fail_rate",
     notify("backend-data"),

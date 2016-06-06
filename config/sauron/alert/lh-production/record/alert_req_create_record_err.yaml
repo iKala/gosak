@@ -1,8 +1,8 @@
 interval: 1m
 script: |
-  v400 = mquery("record", "req.create.record.s400", "value", "sum", "5m", "0m")
-  v500 = mquery("record", "req.create.record.s500", "value", "sum", "5m", "0m")
-  v = v400 + v500
+  vAll = mquery("record", "req.create.record.proc_time", "count", "sum", "5m", "0m")
+  v200 = mquery("record", "req.create.record.s200", "value", "sum", "5m", "0m")
+  v = vAll - v200
   alert(
     "fail_rate",
     notify("backend-data"),
