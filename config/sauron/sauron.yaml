@@ -75,3 +75,24 @@ credential:
         86xJVDnJL/EExCtefd2c8IUbZbJHggW2yL8qgjELpy01WSk0x0jQdbukpmReNcpJ
         nGLpp9m/p46p74c3LIhm1xmF6d9qqjYGj5iWoSvRFG0piovSOxLnVg==
         -----END RSA PRIVATE KEY-----
+    ikalacomputeenginetest:
+      email: 189411636739-3mt4kfpcu5o7em59ggpr7c7jsob9l1hd@developer.gserviceaccount.com
+      scopes:
+        - https://www.googleapis.com/auth/cloud-platform
+        - https://www.googleapis.com/auth/monitoring.read
+      private_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        MIICXAIBAAKBgQC+ttymBE2ycFD95oz6rpE/mCCIypSpwjzhP1Ms7h7RwXbC7NbL
+        NRUUaQxtkPGvnEfKsyIJRDyUuGnA5Pq2zIELT1R12yDxPYthrF2W0kSCSG/x1612
+        pZVFYmLYE0iJbH++ffz/cB1njFXbvOasKXJoOnnvVtLHeSGeRvNGX36VlwIDAQAB
+        AoGAX9U7oyDeeh/+UtebWAyIaFBlaNeDRJqaRQWxIg615ek1aFXiyVHvOcZfvF7t
+        U7VQTgcdv1JOrtzMJ2Xophq1bL4sHk15tqMBRuyPwU57Wv+dDQYWiTXJMvrXPjRE
+        UxjAfrUiUZG3HUDjY5QWqh8Su10RtHiFq3YRKStxm0oWfaECQQD1qeV8kKqM8XRC
+        STXPKediNX2K7PulU2GSK18GsX33I9pp57JpjcOQqxE6rJ7fusrwW1m458iOgRQR
+        9tbu4psrAkEAxr0XrgJ0LOLcHJJT52y+smy6nGNTweT5VJFzrHUoJnHRES72vQx2
+        Hmz4x/wwIZlPPoNReMZN9eDhTDEmbsLJRQJAMqRRYHpaDjAALWH2K7yRrFcmiCsO
+        PSiRJpa2QiT4uKe1cLuIteW5eOsq5BONtMVG7IGIX2u4llfZkVJ3QEuKfQJBAKbl
+        08YJP4EWfxzrcdTuyPLURp7g90zkutJfWBIjTTWD7bwNgZ5foa6Jex+PVOhSdG8e
+        HsRbXMs5MFspB4qKwDUCQC18LfcdH+OetrRqGsqbiO8MKNzcI9BoO0AN5mMEpbKT
+        XlsQ4++kn3DrUBVyLf+bQV4u6Ia9dOTdMoK7duxukkI=
+        -----END RSA PRIVATE KEY——
