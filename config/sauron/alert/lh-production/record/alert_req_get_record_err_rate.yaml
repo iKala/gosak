@@ -2,10 +2,11 @@ interval: 1m
 script: |
   vAll = mquery("record", "req.get.record.proc_time", "count", "sum", "5m", "0m")
   v200 = mquery("record", "req.get.record.s200", "value", "sum", "5m", "0m")
-  v = vAll == 0 ? 0 : (vAll - v200) / vAll
+  v404 = mquery("record", "req.get.record.s404", "value", "sum", "5m", "0m")
+  v = vAll == 0 ? 0 : (vAll - v404 - v200) / vAll
   alert(
     "fail_rate",
     notify("backend-data"),
-    lastFor(v, ">", 0.6, "30m"),    // P0
-    lastFor(v, ">", 0.5, "10m")     // P1
+    lastFor(v, ">", 0.3, "30m"),    // P0
+    lastFor(v, ">", 0.1, "10m")     // P1
   )
