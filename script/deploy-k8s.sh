@@ -7,7 +7,8 @@ source script/k8s-env.sh
 GIT_COMMIT=$(git rev-parse --short HEAD)
 
 RUN_ENV_GROUP=$1
-TAG=${2:-$GIT_COMMIT}
+INIT=$2
+TAG=${3:-$GIT_COMMIT}
 
 function rc_cfg {
   cat <<-EOF
@@ -43,6 +44,29 @@ function rc_cfg {
 EOF
 }
 
+# external ip is for stackdriver uptime check
+# source ip of firewall rule is copied from uptime check options button
+function service_cfg {
+  cat <<-EOF
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: sauron-production
+    labels:
+      app: sauron
+      env_group: production
+  spec:
+    ports:
+    - port: 8000
+      targetPort: 8000
+    selector:
+      app: sauron
+      env_group: production
+    type: LoadBalancer
+    loadBalancerIP: 104.199.151.71
+EOF
+}
+
 case "${RUN_ENV_GROUP}" in
   "staging")
     RUN_ENV=straas-staging
@@ -62,6 +86,10 @@ case "${RUN_ENV_GROUP}" in
     exit 1
   ;;
 esac
+
+if [[ "$INIT" == "true" ]]; then
+  service_cfg | k8s_create || exit 1
+fi
 
 IMAGE=gcr.io/${PROJECT_ID}/sauron:${TAG}
 CPU=200m
