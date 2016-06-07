@@ -2,7 +2,7 @@
 # use temporarly, script will be replaced by kalajan
 # following script is copied from revealer deploy script
 
-source script/k8s-env.sh
+source script/common/k8s-env.sh
 
 GIT_COMMIT=$(git rev-parse --short HEAD)
 
