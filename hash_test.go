@@ -21,7 +21,11 @@ func TestAes128Encrypt(t *testing.T) {
 	encrypted, _ := Aes128Encrypt("livehouse1234567", "abcdef1234567890", testedData, hex.EncodeToString)
 	log.Printf("encrypted: %s", encrypted)
 
-	decrypted, _ := Aes128Decrypt("livehouse1234567", "abcdef1234567890", encrypted, hex.DecodeString)
+	// decode fails
+	decrypted, err := Aes128Decrypt("livehouse1234567", "abcdef1234567890", "RANDOM", hex.DecodeString)
+	assert.NotNil(t, err)
+
+	decrypted, _ = Aes128Decrypt("livehouse1234567", "abcdef1234567890", encrypted, hex.DecodeString)
 	log.Printf("decrypted: %s", decrypted)
 
 	assert.Equal(t, testedData, decrypted)

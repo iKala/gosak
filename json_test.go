@@ -12,6 +12,11 @@ func TestJSONStringToMap(t *testing.T) {
 
 	assert.Equal(t, 2, len(r))
 	assert.Equal(t, "ww9xPA7Abvwf8CTcih", r["hash"])
+
+	// unmarshal fails
+	s = `NOT JSON`
+	r = JSONStringToMap(s)
+	assert.Equal(t, 0, len(r))
 }
 
 func TestJSONStringToList(t *testing.T) {
@@ -29,11 +34,15 @@ func TestJSONStringToList(t *testing.T) {
 
 	assert.Equal(t, 2, len(r))
 	assert.Equal(t, []string{"10.240.0.80", "10.240.0.12"}, r[0])
+
+	// unmarshal fails
+	s = `NOT JSON`
+	array = JSONStringToList(s)
+	assert.Equal(t, 0, len(array))
 }
 
 func TestJSONMapToString(t *testing.T) {
 	m := map[string]interface{}{"name": "leo", "age": 10}
-
 	r := JSONMapToString(m)
 
 	assert.Equal(t, `{"age":10,"name":"leo"}`, string(r))

@@ -11,7 +11,7 @@ func JSONStringToMap(jsonString string) map[string]interface{} {
 
 	err := json.Unmarshal([]byte(jsonString), &dat)
 	if err != nil {
-		log.Printf("Unmarshal error: jsonString[%s], error[%s]", jsonString, err.Error())
+		log.Printf(err.Error())
 	}
 
 	return dat
@@ -23,7 +23,7 @@ func JSONStringToList(jsonString string) []interface{} {
 
 	err := json.Unmarshal([]byte(jsonString), &dat)
 	if err != nil {
-		log.Printf("Unmarshal error: jsonString[%s], error[%s]", jsonString, err.Error())
+		log.Printf(err.Error())
 	}
 
 	return dat
@@ -31,11 +31,7 @@ func JSONStringToList(jsonString string) []interface{} {
 
 // JSONMapToString converts json map to string
 func JSONMapToString(jsonMap map[string]interface{}) []byte {
-	dat, err := json.Marshal(jsonMap)
-	if err != nil {
-		log.Printf(err.Error())
-	}
-
+	dat, _ := json.Marshal(jsonMap)
 	return dat
 }
 

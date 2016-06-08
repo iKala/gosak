@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"crypto/sha1"
 	"encoding/base32"
-	"encoding/base64"
 	"fmt"
 	"log"
 )
@@ -27,16 +26,10 @@ func Sha1SumWithSalt(seed, salt string) string {
 // Aes128Encrypt encrypts by AES128
 func Aes128Encrypt(key, cipherString, src string, encode binaryToText) (string, error) {
 
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		log.Printf("Fail NewCipher: err[%s]", err.Error())
-
-		return "", err
-	}
-
+	block, _ := aes.NewCipher([]byte(key))
+	ciphertext := []byte(cipherString)
 	str := []byte(src)
 
-	ciphertext := []byte(cipherString)
 	iv := ciphertext[:aes.BlockSize]
 	encrypter := cipher.NewCFBEncrypter(block, iv)
 
@@ -52,19 +45,13 @@ func Aes128Encrypt(key, cipherString, src string, encode binaryToText) (string, 
 func Aes128Decrypt(key, cipherString, encodedSrc string, decode textToBinary) (string, error) {
 	encrypted, err := decode(encodedSrc)
 	if err != nil {
-		log.Printf("Fail base32 decode: err[%s]", err.Error())
-
+		log.Printf("Fail decode: err[%s]", err.Error())
 		return "", err
 	}
 
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		log.Printf("Fail NewCipher: err[%s]", err.Error())
-
-		return "", err
-	}
-
+	block, _ := aes.NewCipher([]byte(key))
 	ciphertext := []byte(cipherString)
+
 	iv := ciphertext[:aes.BlockSize]
 	decrypter := cipher.NewCFBDecrypter(block, iv)
 
@@ -72,20 +59,6 @@ func Aes128Decrypt(key, cipherString, encodedSrc string, decode textToBinary) (s
 	decrypter.XORKeyStream(decrypted, encrypted)
 
 	return string(decrypted[:]), nil
-}
-
-// Base64CustomeAlphabetEncode encodes wht custome alphabet by Base64
-func Base64CustomeAlphabetEncode(alphabet string, src []byte) string {
-	encoding := base64.NewEncoding(alphabet)
-
-	return encoding.EncodeToString(src)
-}
-
-// Base64CustomeAlphabetDecode decodes wht custome alphabet by Base64
-func Base64CustomeAlphabetDecode(alphabet string, base64Src string) ([]byte, error) {
-	encoding := base64.NewEncoding(alphabet)
-
-	return encoding.DecodeString(base64Src)
 }
 
 // IsBase32Encoded checks if data is Base32 encoded

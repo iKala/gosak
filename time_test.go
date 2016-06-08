@@ -41,3 +41,8 @@ func TestGetTimeStringWithZone(t *testing.T) {
 
 	log.Printf("time: %s", timeString)
 }
+
+func TestTimeTrack(t *testing.T) {
+	defer TimeTrack(time.Now(), "TimeTrack")
+	time.Sleep(time.Second)
+}
