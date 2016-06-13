@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: bash script/run-dryrun.sh straas-production <IMG>
+# usage: bash script/sauron/run-dryrun.sh straas-production <IMG>
 # note that this script MUST run in project root
 
 RUN_ENV=$1

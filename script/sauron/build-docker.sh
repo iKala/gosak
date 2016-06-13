@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage bash script/build-docker.sh <DOCKER_TAG>
+# usage bash script/sauron/build-docker.sh <DOCKER_TAG>
 # note that this script MUST run in project root
 
 GIT_COMMIT=$(git rev-parse --short HEAD)
@@ -11,6 +11,7 @@ BUILD_IMG=build-${IMG_TAG}
 CONTAINER_NAME=sauron-build-container
 SOURCE_TAR=source.tar.gz
 BUILD_FOLDER=build
+SCRIPT_FOLDER=script/sauron
 
 function clean_up {
   docker rm -f ${CONTAINER_NAME}
@@ -36,14 +37,14 @@ function build_and_run_builder {
   # archive source code only for clean build environment
   # once vendor is empty, tar not return 0
   # since we del tar file first, docker cp can test tar file existance
-  tar zcvf ${SOURCE_TAR} config/ script/ src/straas.io/ src/glide.yaml
+  tar zcvf ${SOURCE_TAR} config/sauron script/sauron src/straas.io/ src/glide.yaml
 
-  safe_exec docker build -t ${BUILD_IMG} -f Dockerfile.build .
+  safe_exec docker build -t ${BUILD_IMG} -f ${SCRIPT_FOLDER}/Dockerfile.build .
   safe_exec docker run -d --name ${CONTAINER_NAME} ${BUILD_IMG} tail -f /dev/null
 
   safe_exec docker cp ${SOURCE_TAR} ${CONTAINER_NAME}:/go/
   safe_exec docker exec -i ${CONTAINER_NAME} tar zxvf ${SOURCE_TAR}
-  safe_exec docker exec -i ${CONTAINER_NAME} bash script/build-bin.sh
+  safe_exec docker exec -i ${CONTAINER_NAME} bash ${SCRIPT_FOLDER}/build-bin.sh
 }
 
 function run_test {
@@ -75,10 +76,10 @@ build_and_run_builder
 run_test
 
 # copy necessary files to build folder
-safe_exec docker cp ${CONTAINER_NAME}:/go/bin/main ${BUILD_FOLDER}/main
+safe_exec docker cp ${CONTAINER_NAME}:/go/bin/sauron ${BUILD_FOLDER}/sauron
 
 # build run docker
-safe_exec docker build -t ${IMG_TAG} -f Dockerfile.run .
+safe_exec docker build -t ${IMG_TAG} -f ${SCRIPT_FOLDER}/Dockerfile.run .
 
 # push images to registry
 push_docker ikala-infra

@@ -8,3 +8,4 @@ cd -
 
 # build sauron config builder
 go install straas.io/sauron/main
+mv bin/main bin/sauron

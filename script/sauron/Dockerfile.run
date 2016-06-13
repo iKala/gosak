@@ -5,8 +5,7 @@ MAINTAINER taco.lin@livehouse.in
 # install bash
 RUN apk add --update bash && rm -rf /var/cache/apk/*
 
-COPY build/ /build/
-COPY script/ /script/
+COPY build/sauron /build/sauron
 COPY config/sauron /config/
 
-ENTRYPOINT ["/build/main"]
+ENTRYPOINT ["/build/sauron"]
