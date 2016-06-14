@@ -53,4 +53,6 @@ import:
 - package: github.com/montanaflynn/stats
   version: eeaced052adbcfeea372c749c281099ed7fdaa38
 - package: github.com/gorilla/mux
+  version: 9fa818a44c2bf1396a17f9d5a3c0f6dd39d2ff8e
 - package: github.com/codegangsta/negroni
+  version: 902d2a2ec1dcb9ec3c5fde29917e1d2eceea2182

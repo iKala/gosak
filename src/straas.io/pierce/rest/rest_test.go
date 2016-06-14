@@ -41,7 +41,7 @@ func (suite *RestHandlerTestSuite) TestHealthCheck() {
 
 	body, err := ioutil.ReadAll(response.Body)
 	suite.Equal(nil, err)
-	suite.Equal(200, response.Code)
+	suite.Equal(http.StatusOK, response.Code)
 	suite.Equal("OK", string(body))
 }
 
@@ -55,5 +55,5 @@ func (suite *RestHandlerTestSuite) Test404ForNonexistingRoute() {
 
 	_, err = ioutil.ReadAll(response.Body)
 	suite.Equal(nil, err)
-	suite.Equal(404, response.Code)
+	suite.Equal(http.StatusNotFound, response.Code)
 }
