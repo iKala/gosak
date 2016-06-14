@@ -13,3 +13,10 @@ groups:
         channel: rd-backend-data
         severity: [0, 1, 2]
         recovery: [0, 1, 2]
+  - name: backend-transcode
+    sinkers:
+      - type: slack
+        user_name: notify-girl
+        channel: rd-backend-transcode
+        severity: [0, 1, 2]
+        recovery: [0, 1, 2]

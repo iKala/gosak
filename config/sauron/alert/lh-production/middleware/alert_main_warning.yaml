@@ -1,0 +1,10 @@
+interval: 1m
+script: |
+  threshold = 20
+  v = mquery("middleware", "count.app.warning", "value", "sum", "5m", "0m")
+  alert(
+    "warning_per_5m",
+    notify("backend-transcode"),
+    lastFor(v, ">", threshold, "1m") // P0
+  )
+
