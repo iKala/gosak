@@ -75,7 +75,7 @@ case "${RUN_ENV_GROUP}" in
     ES_HOSTS=${ES_HOSTS},http://elasticsearch-main-ikalainfra-staging-2:9200
   ;;
   "production")
-    RUN_ENV=straas-production
+    RUN_ENV=straas-production,lh-production
     RC_NAME="sauron-production"
     ES_HOSTS=http://elasticsearch-main-ikalainfra-production-1:9200
     ES_HOSTS=${ES_HOSTS},http://elasticsearch-main-ikalainfra-production-2:9200
