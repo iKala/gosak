@@ -9,7 +9,7 @@ import (
 
 	"straas.io/base/logger"
 
-	"github.com/gorilla/mux"
+	"github.com/julienschmidt/httprouter"
 )
 
 var log = logger.Get()
@@ -44,11 +44,10 @@ func (rest *Handler) HealthCheck(w http.ResponseWriter, req *http.Request) *Erro
 }
 
 // BuildRouter registers all routes
-func BuildRouter(h Handler) *mux.Router {
-	router := mux.NewRouter()
+func BuildRouter(h Handler) *httprouter.Router {
+	router := httprouter.New()
 
-	router.Handle("/healthcheck",
-		handlerWrapper(h.HealthCheck)).Methods("GET")
+	router.Handler("GET", "/healthcheck", handlerWrapper(h.HealthCheck))
 
 	return router
 }
