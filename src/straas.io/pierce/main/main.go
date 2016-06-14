@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"straas.io/base/ctrl"
 	"straas.io/base/logger"
 	"straas.io/pierce/rest"
 
@@ -12,8 +13,9 @@ import (
 )
 
 var (
-	port = flag.Int("port", 11300, "Restful API port")
-	log  = logger.Get()
+	portCtrl = flag.Int("portCtrl", 8000, "port for health check")
+	portRest = flag.Int("portRest", 11300, "Restful API port")
+	log      = logger.Get()
 )
 
 func main() {
@@ -25,6 +27,10 @@ func main() {
 	n := negroni.Classic()
 	n.UseHandler(router)
 
+	go func() {
+		log.Fatal(ctrl.RunController(*portCtrl))
+	}()
+
 	log.Infof("[main] starting restful API server")
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), n))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portRest), n))
 }
