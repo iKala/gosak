@@ -1,7 +1,7 @@
 package pierce
 
-// Pierce defines an interface Pierce core operations
-type PierceCore interface {
+// Core defines an interface Pierce core operations
+type Core interface {
 	// Start starts pierce core
 	Start()
 	// Stop stops pierce core
