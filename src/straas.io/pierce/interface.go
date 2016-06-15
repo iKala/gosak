@@ -24,4 +24,6 @@ type SocketConnection interface {
 	RoomIds() []string
 	// Emit sends data to connection
 	Emit(data string, version uint64)
+	// Id returns connection id
+	Id() string
 }

@@ -56,3 +56,18 @@ import:
   version: 9fa818a44c2bf1396a17f9d5a3c0f6dd39d2ff8e
 - package: github.com/codegangsta/negroni
   version: 902d2a2ec1dcb9ec3c5fde29917e1d2eceea2182
+- package: github.com/coreos/etcd
+  version: 128344c45541a477053f9df2ac39328027badc02
+  subpackages:
+  - client
+- package: github.com/googollee/go-socket.io
+  version: df220121357eaf587d650c4250baeaa90b964b45
+- package: github.com/googollee/go-engine.io
+  version: ca9ced27e02c880970ee7726f9814f8a9c55d777
+  subpackages:
+  - message
+  - parser
+  - polling
+  - transport
+  - websocket
+
