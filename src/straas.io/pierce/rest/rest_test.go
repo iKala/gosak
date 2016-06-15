@@ -1,4 +1,4 @@
-package rest_test
+package rest
 
 import (
 	"bytes"
@@ -7,53 +7,33 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"straas.io/pierce/rest"
+	"straas.io/base/logger"
 
-	"github.com/codegangsta/negroni"
 	"github.com/stretchr/testify/suite"
 )
 
-var n *negroni.Negroni
-var tested rest.Handler
+var log = logger.Get()
 
-func TestRestHandlerTestSuite(t *testing.T) {
-	suite.Run(t, new(RestHandlerTestSuite))
+func TestRestTestSuite(t *testing.T) {
+	suite.Run(t, new(RestTestSuite))
 }
 
-type RestHandlerTestSuite struct {
+type RestTestSuite struct {
 	suite.Suite
 }
 
-func (suite *RestHandlerTestSuite) SetupSuite() {
-	// run test http server
-	n = negroni.New()
-	router := rest.BuildRouter(tested)
-	n.UseHandler(router)
-}
-
-func (suite *RestHandlerTestSuite) TestHealthCheck() {
+func (suite *RestTestSuite) TestHealthCheck() {
 	response := httptest.NewRecorder()
 	response.Body = new(bytes.Buffer)
 
-	req, err := http.NewRequest("GET", "http://localhost/healthcheck", nil)
+	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	suite.Equal(nil, err)
-	n.ServeHTTP(response, req)
+
+	handler := NewRest(log)
+	handler.ServeHTTP(response, req)
 
 	body, err := ioutil.ReadAll(response.Body)
 	suite.Equal(nil, err)
 	suite.Equal(http.StatusOK, response.Code)
 	suite.Equal("OK", string(body))
-}
-
-func (suite *RestHandlerTestSuite) Test404ForNonexistingRoute() {
-	response := httptest.NewRecorder()
-	response.Body = new(bytes.Buffer)
-
-	req, err := http.NewRequest("GET", "http://localhost/thereIsNoSuchRoute", nil)
-	suite.Equal(nil, err)
-	n.ServeHTTP(response, req)
-
-	_, err = ioutil.ReadAll(response.Body)
-	suite.Equal(nil, err)
-	suite.Equal(http.StatusNotFound, response.Code)
 }

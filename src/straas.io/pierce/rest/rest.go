@@ -1,6 +1,3 @@
-// Package rest represents the REST layer
-// Copied from https://github.com/browny/goweb-scaffold with Viper and
-// facebookgo packages removed as we do not use it now.
 package rest
 
 import (
@@ -8,46 +5,17 @@ import (
 	"net/http"
 
 	"straas.io/base/logger"
-
-	"github.com/julienschmidt/httprouter"
+	"straas.io/base/rest"
 )
 
-var log = logger.Get()
-
-// Error is self defined error type
-type Error struct {
-	Error  error
-	Detail string
-	Code   int
+// NewRest builds and returns a RESTful API handler
+func NewRest(log logger.Logger) http.Handler {
+	r := rest.NewRest(log)
+	r.Route("GET", "/healthcheck", healthCheck)
+	return r.GetHandler()
 }
 
-// handlerWrapper manages all http error handling
-type handlerWrapper func(http.ResponseWriter, *http.Request) *Error
-
-func (fn handlerWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if restErr := fn(w, r); restErr != nil {
-		if restErr.Detail != "" {
-			log.Errorf("error detail: %s", restErr.Detail)
-		}
-		http.Error(w, restErr.Error.Error(), restErr.Code)
-	}
-}
-
-// Handler includes all http handler methods
-type Handler struct {
-}
-
-// HealthCheck is called by Google cloud to do health check
-func (rest *Handler) HealthCheck(w http.ResponseWriter, req *http.Request) *Error {
+func healthCheck(w http.ResponseWriter, req *http.Request) *rest.Error {
 	fmt.Fprintf(w, "OK")
 	return nil
-}
-
-// BuildRouter registers all routes
-func BuildRouter(h Handler) *httprouter.Router {
-	router := httprouter.New()
-
-	router.Handler("GET", "/healthcheck", handlerWrapper(h.HealthCheck))
-
-	return router
 }
