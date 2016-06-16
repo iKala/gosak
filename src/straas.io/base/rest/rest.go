@@ -14,8 +14,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// NewRest creates a new restful API builder
-func NewRest(log logger.Logger) Rest {
+// New creates a new restful API builder
+func New(log logger.Logger) Rest {
 	router := httprouter.New()
 	n := negroni.Classic()
 	n.UseHandler(router)
@@ -34,11 +34,11 @@ type Rest interface {
 	// GetHandler returns a http.Handler that can be passed to http.ListenAndServe
 	GetHandler() http.Handler
 	// Use registers a middleware function
-	Use(fn middlewareFunc)
+	Use(fn MiddlewareFunc)
 	// Route registers a route handler. When an error occurs, the handler should
 	// just return an Error and let this package log and generate http error
 	// response for you.
-	Route(method, path string, handle handlerFunc)
+	Route(method, path string, handle HandlerFunc)
 }
 
 type restImpl struct {
@@ -51,17 +51,19 @@ func (r *restImpl) GetHandler() http.Handler {
 	return r.middleware
 }
 
-func (r *restImpl) Use(fn middlewareFunc) {
+func (r *restImpl) Use(fn MiddlewareFunc) {
 	r.middleware.Use(negroni.HandlerFunc(fn))
 }
 
-func (r *restImpl) Route(method, path string, handle handlerFunc) {
-	r.router.Handler(method, path, handlerWrapper{handle, r.log})
+func (r *restImpl) Route(method, path string, fn HandlerFunc) {
+	r.router.HandlerFunc(method, path, wrapper(fn, r.log))
 }
 
-type middlewareFunc func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc)
+// MiddlewareFunc defines middleware for your restful API
+type MiddlewareFunc func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc)
 
-type handlerFunc func(rw http.ResponseWriter, req *http.Request) *Error
+// HandlerFunc handles http requests and returns Error on failure.
+type HandlerFunc func(rw http.ResponseWriter, req *http.Request) *Error
 
 // Error is self defined error type
 type Error struct {
@@ -70,18 +72,13 @@ type Error struct {
 	Code   int
 }
 
-// handlerWrapper manages all http error handling
-type handlerWrapper struct {
-	fn  func(http.ResponseWriter, *http.Request) *Error
-	log logger.Logger
-}
-
-// ServeHTTP logs error Detail and generates http error response
-func (hw handlerWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if restErr := hw.fn(w, r); restErr != nil {
-		if restErr.Detail != "" {
-			hw.log.Errorf("error detail: %s", restErr.Detail)
+func wrapper(fn HandlerFunc, log logger.Logger) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
+		if restErr := fn(rw, req); restErr != nil {
+			if restErr.Detail != "" {
+				log.Errorf("error detail: %s", restErr.Detail)
+			}
+			http.Error(rw, restErr.Error.Error(), restErr.Code)
 		}
-		http.Error(w, restErr.Error.Error(), restErr.Code)
 	}
 }

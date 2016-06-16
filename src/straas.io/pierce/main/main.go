@@ -19,7 +19,7 @@ var (
 func main() {
 	flag.Parse()
 
-	handler := rest.NewRest(log)
+	handler := rest.New(log)
 
 	go func() {
 		log.Fatal(ctrl.RunController(*portCtrl))

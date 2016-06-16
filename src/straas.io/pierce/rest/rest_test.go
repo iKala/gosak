@@ -29,7 +29,7 @@ func (suite *RestTestSuite) TestHealthCheck() {
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	suite.Equal(nil, err)
 
-	handler := NewRest(log)
+	handler := New(log)
 	handler.ServeHTTP(response, req)
 
 	body, err := ioutil.ReadAll(response.Body)

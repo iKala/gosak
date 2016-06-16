@@ -30,7 +30,7 @@ func (suite *RestHandlerTestSuite) TestSimpleRoute() {
 	req, err := http.NewRequest("GET", "http://localhost/healthcheck", nil)
 	suite.Equal(nil, err)
 
-	router := NewRest(log)
+	router := New(log)
 	router.Route("GET", "/healthcheck", func(w http.ResponseWriter, req *http.Request) *Error {
 		fmt.Fprintf(w, "OK")
 		return nil
@@ -51,7 +51,7 @@ func (suite *RestHandlerTestSuite) Test404ForNonexistingRoute() {
 	req, err := http.NewRequest("GET", "http://localhost/thereIsNoSuchRoute", nil)
 	suite.Equal(nil, err)
 
-	router := NewRest(log)
+	router := New(log)
 	handler := router.GetHandler()
 	handler.ServeHTTP(response, req)
 

@@ -8,9 +8,9 @@ import (
 	"straas.io/base/rest"
 )
 
-// NewRest builds and returns a RESTful API handler
-func NewRest(log logger.Logger) http.Handler {
-	r := rest.NewRest(log)
+// New builds and returns a RESTful API handler that can be passed to http.ListenAndServe
+func New(log logger.Logger) http.Handler {
+	r := rest.New(log)
 	r.Route("GET", "/healthcheck", healthCheck)
 	return r.GetHandler()
 }
