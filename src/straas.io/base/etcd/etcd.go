@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -32,10 +30,6 @@ type Etcd interface {
 	Get(etcdKey string, recursive bool) (*client.Response, error)
 	// Set sets the value to etcd
 	Set(etcdKey, value string) (*client.Response, error)
-	// ToValue performs DFS to build value map and max modified idx
-	ToValue(node *client.Node, unmarshaller func(string, interface{}) error) (interface{}, uint64, error)
-	// Subkey remoevs prefix from etcd key
-	Subkey(prefix, key string) (string, error)
 }
 
 type etcdImpl struct {
@@ -138,46 +132,6 @@ func (a *etcdImpl) Set(etcdKey, value string) (*client.Response, error) {
 	opt := &client.SetOptions{}
 	ctx, _ := context.WithTimeout(context.Background(), a.timeout)
 	return a.api.Set(ctx, etcdKey, value, opt)
-}
-
-func (a *etcdImpl) ToValue(node *client.Node,
-	unmarshaller func(string, interface{}) error) (interface{}, uint64, error) {
-	if !node.Dir {
-		if node.Value == "" {
-			return nil, node.ModifiedIndex, nil
-		}
-		var v interface{}
-		if err := unmarshaller(node.Value, &v); err != nil {
-			return nil, 0, err
-		}
-		return v, node.ModifiedIndex, nil
-	}
-
-	vs := map[string]interface{}{}
-	maxIndex := node.ModifiedIndex
-
-	for _, n := range node.Nodes {
-		key, err := a.Subkey(node.Key, n.Key)
-		if err != nil {
-			return nil, 0, err
-		}
-		v, idx, err := a.ToValue(n, unmarshaller)
-		if err != nil {
-			return nil, 0, err
-		}
-		if idx > maxIndex {
-			maxIndex = idx
-		}
-		vs[key] = v
-	}
-	return vs, maxIndex, nil
-}
-
-func (a *etcdImpl) Subkey(prefix, etcdKey string) (string, error) {
-	if !strings.HasPrefix(etcdKey, prefix) {
-		return "", fmt.Errorf("unexcepted etcd key %s for %s", etcdKey, prefix)
-	}
-	return strings.TrimPrefix(etcdKey[len(prefix):], "/"), nil
 }
 
 // getWatcher returns watcher with the given key and index

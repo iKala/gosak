@@ -71,7 +71,7 @@ func (r *coreImpl) Get(roomId, key string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	v, _, err := r.etcdAPI.ToValue(resp.Node, unmarshaller)
+	v, _, err := toValue(resp.Node, unmarshaller)
 	return v, err
 }
 

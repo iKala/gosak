@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/coreos/etcd/client"
 )
 
 // extractKey remoevs prefix from etcd key
@@ -113,4 +115,44 @@ func ensureMap(container interface{},
 		return nil, nil, fmt.Errorf("cannot convert container to map")
 	}
 	return container, nested, nil
+}
+
+func toValue(node *client.Node,
+	unmarshaller func(string, interface{}) error) (interface{}, uint64, error) {
+	if !node.Dir {
+		if node.Value == "" {
+			return nil, node.ModifiedIndex, nil
+		}
+		var v interface{}
+		if err := unmarshaller(node.Value, &v); err != nil {
+			return nil, 0, err
+		}
+		return v, node.ModifiedIndex, nil
+	}
+
+	vs := map[string]interface{}{}
+	maxIndex := node.ModifiedIndex
+
+	for _, n := range node.Nodes {
+		key, err := subkey(node.Key, n.Key)
+		if err != nil {
+			return nil, 0, err
+		}
+		v, idx, err := toValue(n, unmarshaller)
+		if err != nil {
+			return nil, 0, err
+		}
+		if idx > maxIndex {
+			maxIndex = idx
+		}
+		vs[key] = v
+	}
+	return vs, maxIndex, nil
+}
+
+func subkey(prefix, etcdKey string) (string, error) {
+	if !strings.HasPrefix(etcdKey, prefix) {
+		return "", fmt.Errorf("unexcepted etcd key %s for %s", etcdKey, prefix)
+	}
+	return strings.TrimPrefix(etcdKey[len(prefix):], "/"), nil
 }

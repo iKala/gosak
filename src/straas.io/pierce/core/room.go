@@ -126,13 +126,13 @@ func (r *roomImpl) applyChange(resp *client.Response) error {
 	cur := resp.Node
 
 	// get room and key from etcd key
-	key, err := r.etcdAPI.Subkey(r.etcdKey, cur.Key)
+	key, err := subkey(r.etcdKey, cur.Key)
 	if err != nil {
 		// illegal key
 		return err
 	}
 
-	data, version, err := r.etcdAPI.ToValue(cur, unmarshaller)
+	data, version, err := toValue(cur, unmarshaller)
 	if err != nil {
 		// WTF
 		return err
