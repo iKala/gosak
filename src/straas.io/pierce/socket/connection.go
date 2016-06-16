@@ -1,4 +1,4 @@
-package core
+package socket
 
 import (
 	socketio "github.com/googollee/go-socket.io"
@@ -30,10 +30,10 @@ func (c *connImpl) RoomIds() []string {
 }
 
 func (c *connImpl) Emit(data string, version uint64) {
+	// skip old data
 	if version <= c.version {
 		return
 	}
-
 	c.version = version
 	if err := c.socket.Emit("data", data); err != nil {
 		// TODO: log & metric

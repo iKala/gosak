@@ -8,6 +8,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 
+	"straas.io/base/etcd"
 	"straas.io/base/logger"
 	"straas.io/pierce/core"
 	"straas.io/pierce/socket"
@@ -40,8 +41,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	kAPI := client.NewKeysAPI(c)
-	coreMgr := core.NewCore(kAPI)
+	etcdAPI := etcd.NewEtcd(c, 10*time.Second, log)
+	coreMgr := core.NewCore(etcdAPI)
 	coreMgr.Start()
 
 	skServer := socket.NewSockerServer(coreMgr)

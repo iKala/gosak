@@ -9,7 +9,7 @@ type Core interface {
 	// Get gets data of the give room and key
 	Get(roomId, key string) (interface{}, error)
 	// Get gets all data of the give room
-	GetAll(roomId string) (map[string]interface{}, error)
+	GetAll(roomId string) (interface{}, error)
 	// Set sets data of the given room and key
 	Set(roomId, key string, value interface{}) error
 	// Join adds socket connections

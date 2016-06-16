@@ -1,3 +1,4 @@
+// pls npm i socket.io-client
 var socketio = require('socket.io-client');
 
 var socketUrl = "http://localhost:5000/socket.io";
@@ -41,7 +42,7 @@ function runSocket() {
   socket.on('data', function() {
     log(arguments);
   });
-  
+
 }
 
 runSocket();

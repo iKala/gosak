@@ -9,7 +9,6 @@ import (
 
 	"straas.io/base/logger"
 	"straas.io/pierce"
-	"straas.io/pierce/core"
 )
 
 var (
@@ -67,7 +66,8 @@ func (s *SocketServer) Create() (http.Handler, error) {
 		case 1:
 			conns[connId]++
 			connLock.Unlock()
-			conn = core.NewConn(so, []string{"aaa", "bbb"})
+			// TODO: extra room from token
+			conn = NewConn(so, []string{"aaa", "bbb"})
 			coreMgr.Join(conn)
 
 		default:

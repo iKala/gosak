@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/coreos/etcd/client"
-
+	"straas.io/base/etcd"
 	"straas.io/base/logger"
 	"straas.io/pierce"
 )
@@ -19,11 +18,14 @@ var (
 )
 
 // NewCore creates an instance of core manager
-func NewCore(kAPI client.KeysAPI) pierce.Core {
+func NewCore(etcdAPI etcd.Etcd) pierce.Core {
+	rFactory := func(roomId, etcdKey string) Room {
+		return newRoom(roomId, etcdKey, etcdAPI)
+	}
 	return &coreImpl{
 		rooms:    map[string]Room{},
-		kAPI:     kAPI,
-		rFactory: newRoom,
+		etcdAPI:  etcdAPI,
+		rFactory: rFactory,
 		chJoin:   make(chan pierce.SocketConnection, 1000),
 		chLeave:  make(chan pierce.SocketConnection, 1000),
 		chDone:   make(chan bool),
@@ -39,11 +41,11 @@ func toEtcdKey(room, key string) string {
 	return fmt.Sprintf("/pierce/%s/%s", room, key)
 }
 
-type roomFactory func(string, string, client.KeysAPI) Room
+type roomFactory func(string, string) Room
 
 type coreImpl struct {
 	rooms    map[string]Room
-	kAPI     client.KeysAPI
+	etcdAPI  etcd.Etcd
 	rFactory roomFactory
 
 	// channels
@@ -64,26 +66,41 @@ func (r *coreImpl) Stop() {
 }
 
 func (r *coreImpl) Get(roomId, key string) (interface{}, error) {
-	return nil, fmt.Errorf("unimplemennt yet")
+	etcdKey := toEtcdKey(roomId, key)
+	resp, err := r.etcdAPI.Get(etcdKey, true)
+	if err != nil {
+		return nil, err
+	}
+	v, _, err := r.etcdAPI.ToValue(resp.Node, unmarshaller)
+	return v, err
 }
 
-func (r *coreImpl) GetAll(roomId string) (map[string]interface{}, error) {
-	return nil, fmt.Errorf("unimplemennt yet")
+func (r *coreImpl) GetAll(roomId string) (interface{}, error) {
+	return r.Get(roomId, "")
 }
 
 func (r *coreImpl) Set(roomId, key string, v interface{}) error {
-	return fmt.Errorf("unimplemennt yet")
+	value, err := marshaller(v)
+	if err != nil {
+		return err
+	}
+	etcdKey := toEtcdKey(roomId, key)
+	_, err = r.etcdAPI.Set(etcdKey, value)
+	return err
 }
 
 func (r *coreImpl) Join(conn pierce.SocketConnection) {
+	// push to event loop
 	r.chJoin <- conn
 }
 
 func (r *coreImpl) Leave(conn pierce.SocketConnection) {
+	// push to event loop
 	r.chLeave <- conn
 }
 
 func (r *coreImpl) mainLoop() {
+	// leverage event loop to avoid any racing conditions
 	// how to make sure alreay watching ?!
 	maintain := time.NewTicker(maintainInterval).C
 	for {
@@ -126,6 +143,8 @@ func (r *coreImpl) maintain() {
 	}
 }
 
+// ensureRoom returns the room of the give roomId, and creates
+// the room if necessary
 func (r *coreImpl) ensureRoom(roomId string) Room {
 	// how to implement ?!
 	room, ok := r.rooms[roomId]
@@ -134,7 +153,7 @@ func (r *coreImpl) ensureRoom(roomId string) Room {
 	}
 
 	log.Infof("create room %s", roomId)
-	room = r.rFactory(roomId, toEtcdKey(roomId, ""), r.kAPI)
+	room = r.rFactory(roomId, toEtcdKey(roomId, ""))
 	r.rooms[roomId] = room
 	room.Start()
 
