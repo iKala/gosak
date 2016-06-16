@@ -22,7 +22,7 @@ type slackImpl struct {
 func (s *slackImpl) Post(channelName, userName,
 	title, message, color string) error {
 	api := slack.New(s.token)
-	channelId, err := getChannelId(api, channelName)
+	channelID, err := getChannelID(api, channelName)
 	if err != nil {
 		return err
 	}
@@ -38,10 +38,10 @@ func (s *slackImpl) Post(channelName, userName,
 			},
 		},
 	}
-	return api.ChatPostMessage(channelId, title, options)
+	return api.ChatPostMessage(channelID, title, options)
 }
 
-func getChannelId(api *slack.Slack, name string) (string, error) {
+func getChannelID(api *slack.Slack, name string) (string, error) {
 	channel, err := api.FindChannelByName(name)
 	if err == nil {
 		return channel.Id, nil
