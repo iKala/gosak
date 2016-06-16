@@ -14,16 +14,26 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// MiddlewareFunc defines middleware for your restful API
+type MiddlewareFunc func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc)
+
+// HandlerFunc handles http requests and returns Error on failure.
+type HandlerFunc func(rw http.ResponseWriter, req *http.Request) *Error
+
+// Error is self defined error type
+type Error struct {
+	Error  error
+	Detail string
+	Code   int
+}
+
 // New creates a new restful API builder
 func New(log logger.Logger) Rest {
-	router := httprouter.New()
-	n := negroni.Classic()
-	n.UseHandler(router)
-
 	return &restImpl{
-		router:     router,
-		middleware: n,
-		log:        log,
+		router:        httprouter.New(),
+		middleware:    negroni.Classic(),
+		log:           log,
+		routerApplied: false,
 	}
 }
 
@@ -42,9 +52,10 @@ type Rest interface {
 }
 
 type restImpl struct {
-	router     *httprouter.Router
-	middleware *negroni.Negroni
-	log        logger.Logger
+	router        *httprouter.Router
+	middleware    *negroni.Negroni
+	log           logger.Logger
+	routerApplied bool
 }
 
 func (r *restImpl) GetHandler() http.Handler {
@@ -57,19 +68,10 @@ func (r *restImpl) Use(fn MiddlewareFunc) {
 
 func (r *restImpl) Route(method, path string, fn HandlerFunc) {
 	r.router.HandlerFunc(method, path, wrapper(fn, r.log))
-}
-
-// MiddlewareFunc defines middleware for your restful API
-type MiddlewareFunc func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc)
-
-// HandlerFunc handles http requests and returns Error on failure.
-type HandlerFunc func(rw http.ResponseWriter, req *http.Request) *Error
-
-// Error is self defined error type
-type Error struct {
-	Error  error
-	Detail string
-	Code   int
+	if !r.routerApplied {
+		r.middleware.UseHandler(r.router)
+		r.routerApplied = true
+	}
 }
 
 func wrapper(fn HandlerFunc, log logger.Logger) http.HandlerFunc {

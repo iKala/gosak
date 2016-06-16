@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -21,43 +22,142 @@ func TestRestHandlerTestSuite(t *testing.T) {
 
 type RestHandlerTestSuite struct {
 	suite.Suite
+	response *httptest.ResponseRecorder
+}
+
+func (suite *RestHandlerTestSuite) SetupTest() {
+	suite.initResponse()
 }
 
 func (suite *RestHandlerTestSuite) TestSimpleRoute() {
-	response := httptest.NewRecorder()
-	response.Body = new(bytes.Buffer)
-
-	req, err := http.NewRequest("GET", "http://localhost/healthcheck", nil)
+	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	suite.Equal(nil, err)
 
 	router := New(log)
-	router.Route("GET", "/healthcheck", func(w http.ResponseWriter, req *http.Request) *Error {
-		fmt.Fprintf(w, "OK")
-		return nil
-	})
+	router.Route("GET", "/healthcheck", okEchoer)
 	handler := router.GetHandler()
-	handler.ServeHTTP(response, req)
+	handler.ServeHTTP(suite.response, req)
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := ioutil.ReadAll(suite.response.Body)
 	suite.Equal(nil, err)
-	suite.Equal(http.StatusOK, response.Code)
+	suite.Equal(http.StatusOK, suite.response.Code)
 	suite.Equal("OK", string(body))
 }
 
 func (suite *RestHandlerTestSuite) Test404ForNonexistingRoute() {
-	response := httptest.NewRecorder()
-	response.Body = new(bytes.Buffer)
-
-	req, err := http.NewRequest("GET", "http://localhost/thereIsNoSuchRoute", nil)
+	req, err := http.NewRequest("GET", "/thereIsNoSuchRoute", nil)
 	suite.Equal(nil, err)
 
 	router := New(log)
+	router.Route("GET", "/ok", okEchoer)
 	handler := router.GetHandler()
-	handler.ServeHTTP(response, req)
+	handler.ServeHTTP(suite.response, req)
 
-	_, err = ioutil.ReadAll(response.Body)
+	_, err = ioutil.ReadAll(suite.response.Body)
 	suite.Equal(nil, err)
-	suite.Equal(http.StatusNotFound, response.Code)
+	suite.Equal(http.StatusNotFound, suite.response.Code)
 }
 
-// TODO: add test for Use() and for error conditions
+func (suite *RestHandlerTestSuite) TestSimpleMiddleware() {
+	req, err := http.NewRequest("GET", "/ok", nil)
+	suite.Equal(nil, err)
+
+	router := New(log)
+	router.Use(karaInserter)
+	router.Route("GET", "/ok", okEchoer)
+	handler := router.GetHandler()
+	handler.ServeHTTP(suite.response, req)
+
+	body, err := ioutil.ReadAll(suite.response.Body)
+	suite.Equal(nil, err)
+	suite.Equal(http.StatusOK, suite.response.Code)
+	suite.Equal("karaOKe", string(body))
+}
+
+func (suite *RestHandlerTestSuite) TestMultipleRoutes() {
+	router := New(log)
+	router.Route("GET", "/ok", okEchoer)
+	router.Route("GET", "/foo", fooEchoer)
+	handler := router.GetHandler()
+
+	req, err := http.NewRequest("GET", "/foo", nil)
+	suite.Equal(nil, err)
+	handler.ServeHTTP(suite.response, req)
+	body, err := ioutil.ReadAll(suite.response.Body)
+	suite.Equal(nil, err)
+	suite.Equal(http.StatusOK, suite.response.Code)
+	suite.Equal("foo", string(body))
+
+	suite.initResponse()
+	req, err = http.NewRequest("GET", "/ok", nil)
+	suite.Equal(nil, err)
+	handler.ServeHTTP(suite.response, req)
+	body, err = ioutil.ReadAll(suite.response.Body)
+	suite.Equal(nil, err)
+	suite.Equal(http.StatusOK, suite.response.Code)
+	suite.Equal("OK", string(body))
+}
+
+func (suite *RestHandlerTestSuite) TestHandlerReturnError() {
+	req, err := http.NewRequest("GET", "/ok", nil)
+	suite.Equal(nil, err)
+
+	router := New(log)
+	errorStr := "user sees this string so I can't say anything here"
+	router.Route("GET", "/ok", func(rw http.ResponseWriter, req *http.Request) *Error {
+		return &Error{
+			Error:  errors.New(errorStr),
+			Detail: "stack overflow!",
+			Code:   http.StatusInternalServerError,
+		}
+	})
+	handler := router.GetHandler()
+	handler.ServeHTTP(suite.response, req)
+
+	body, err := ioutil.ReadAll(suite.response.Body)
+	suite.Equal(nil, err)
+	suite.Equal(http.StatusInternalServerError, suite.response.Code)
+	suite.Equal(errorStr+"\n", string(body))
+}
+
+func (suite *RestHandlerTestSuite) TestMiddlewareReturnError() {
+	req, err := http.NewRequest("GET", "/ok", nil)
+	suite.Equal(nil, err)
+
+	router := New(log)
+	errorStr := "user sees this string so I can't say anything here"
+	router.Use(func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
+		http.Error(rw, errorStr, http.StatusInternalServerError)
+	})
+	router.Route("GET", "/ok", okEchoer)
+	handler := router.GetHandler()
+	handler.ServeHTTP(suite.response, req)
+
+	body, err := ioutil.ReadAll(suite.response.Body)
+	suite.Equal(nil, err)
+	suite.Equal(http.StatusInternalServerError, suite.response.Code)
+	suite.Equal(errorStr+"\n", string(body))
+}
+
+func (suite *RestHandlerTestSuite) initResponse() {
+	suite.response = httptest.NewRecorder()
+	suite.response.Body = new(bytes.Buffer)
+}
+
+func karaInserter(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
+	fmt.Fprintf(rw, "kara")
+	next(rw, req)
+	fmt.Fprintf(rw, "e")
+}
+
+func okEchoer(rw http.ResponseWriter, req *http.Request) *Error {
+	fmt.Fprintf(rw, "OK")
+	return nil
+}
+
+func fooEchoer(rw http.ResponseWriter, req *http.Request) *Error {
+	fmt.Fprintf(rw, "foo")
+	return nil
+}
+
+// test middleware error blocks handler call

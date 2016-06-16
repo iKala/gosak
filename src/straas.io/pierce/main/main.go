@@ -19,7 +19,7 @@ var (
 func main() {
 	flag.Parse()
 
-	handler := rest.New(log)
+	handler := rest.BuildHTTPHandler(log)
 
 	go func() {
 		log.Fatal(ctrl.RunController(*portCtrl))
