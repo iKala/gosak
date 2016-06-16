@@ -7,11 +7,11 @@ type Core interface {
 	// Stop stops pierce core
 	Stop()
 	// Get gets data of the give room and key
-	Get(roomId, key string) (interface{}, error)
+	Get(roomID, key string) (interface{}, error)
 	// Get gets all data of the give room
-	GetAll(roomId string) (interface{}, error)
+	GetAll(roomID string) (interface{}, error)
 	// Set sets data of the given room and key
-	Set(roomId, key string, value interface{}) error
+	Set(roomID, key string, value interface{}) error
 	// Join adds socket connections
 	Join(SocketConnection)
 	// Leave removes socket connection
@@ -23,7 +23,7 @@ type SocketConnection interface {
 	// RoomIds returns belonged roooms of the connection
 	RoomIds() []string
 	// Emit sends data to connection
-	Emit(data string, version uint64)
-	// Id returns connection id
-	Id() string
+	Emit(roomID, data string, version uint64)
+	// ID returns connection id
+	ID() string
 }

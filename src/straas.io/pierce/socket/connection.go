@@ -20,7 +20,7 @@ type connImpl struct {
 	roomIds []string
 }
 
-func (c *connImpl) Id() string {
+func (c *connImpl) ID() string {
 	return c.socket.Id()
 }
 
@@ -29,13 +29,13 @@ func (c *connImpl) RoomIds() []string {
 	return c.roomIds
 }
 
-func (c *connImpl) Emit(data string, version uint64) {
+func (c *connImpl) Emit(roomID, data string, version uint64) {
 	// skip old data
 	if version <= c.version {
 		return
 	}
 	c.version = version
-	if err := c.socket.Emit("data", data); err != nil {
+	if err := c.socket.Emit("data", roomID, data); err != nil {
 		// TODO: log & metric
 		log.Errorf("emit data fail, err:%v", err)
 		c.close()

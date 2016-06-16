@@ -1,8 +1,0 @@
-{
-  "name": "messaging_service_stress",
-  "private": true,
-  "description": "Livehouse Messaging Service stress test",
-  "dependencies": {
-    "socket.io-client": "1.3.7"
-  }
-}

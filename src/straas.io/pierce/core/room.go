@@ -5,7 +5,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 
-	"straas.io/base/etcd"
+	"straas.io/external"
 	"straas.io/pierce"
 )
 
@@ -24,7 +24,7 @@ type Room interface {
 	Empty() bool
 }
 
-func newRoom(id, etcdKey string, etcdAPI etcd.Etcd) Room {
+func newRoom(id, etcdKey string, etcdAPI external.Etcd) Room {
 	log.Debugf("create room with key %s", etcdKey)
 
 	return &roomImpl{
@@ -46,7 +46,7 @@ type roomImpl struct {
 	conns map[pierce.SocketConnection]bool
 	// keep track real pierce.SocketConnection count (some might still in the channel)
 	connCount int
-	etcdAPI   etcd.Etcd
+	etcdAPI   external.Etcd
 	// channels
 	chJoin  chan pierce.SocketConnection
 	chLeave chan pierce.SocketConnection
@@ -71,13 +71,13 @@ func (r *roomImpl) Empty() bool {
 }
 
 func (r *roomImpl) Join(conn pierce.SocketConnection) {
-	log.Infof("connection %s join %s", conn.Id(), r.id)
+	log.Infof("connection %s join %s", conn.ID(), r.id)
 	r.connCount++
 	r.chJoin <- conn
 }
 
 func (r *roomImpl) Leave(conn pierce.SocketConnection) {
-	log.Infof("connection %s leave %s", conn.Id(), r.id)
+	log.Infof("connection %s leave %s", conn.ID(), r.id)
 	r.connCount--
 	r.chLeave <- conn
 }
@@ -88,7 +88,7 @@ func (r *roomImpl) join(conn pierce.SocketConnection) {
 
 	// send if has data
 	if r.version > 0 {
-		conn.Emit(r.dataStr, r.version)
+		conn.Emit(r.id, r.dataStr, r.version)
 	}
 }
 
@@ -98,27 +98,33 @@ func (r *roomImpl) leave(conn pierce.SocketConnection) {
 }
 
 func (r *roomImpl) mainLoop() {
-	// how to make sure alreay watching ?!
 	wch := r.etcdAPI.GetAndWatch(r.etcdKey, r.chDone)
-	for {
-		select {
-		case conn := <-r.chJoin:
-			r.join(conn)
-
-		case conn := <-r.chLeave:
-			r.leave(conn)
-
-		case resp := <-wch:
-			// apply change does not involve any IO operation
-			// it should be no error
-			if err := r.applyChange(resp); err != nil {
-				log.Errorf("fail to apply resp %+v, err:%v", resp, err)
-				// WTD
-				continue
-			}
-			r.broadcast()
-		}
+	for r.loopOnce(wch) {
 	}
+}
+
+func (r *roomImpl) loopOnce(wch <-chan *client.Response) bool {
+	select {
+	case <-r.chDone:
+		return false
+
+	case conn := <-r.chJoin:
+		r.join(conn)
+
+	case conn := <-r.chLeave:
+		r.leave(conn)
+
+	case resp := <-wch:
+		// apply change does not involve any IO operation
+		// it should be no error
+		if err := r.applyChange(resp); err != nil {
+			log.Errorf("fail to apply resp %+v, err:%v", resp, err)
+			// WTD
+			return true
+		}
+		r.broadcast()
+	}
+	return true
 }
 
 func (r *roomImpl) applyChange(resp *client.Response) error {
@@ -174,6 +180,6 @@ func (r *roomImpl) broadcast() {
 
 	// TODO: check previous value
 	for conn := range r.conns {
-		conn.Emit(r.dataStr, r.version)
+		conn.Emit(r.id, r.dataStr, r.version)
 	}
 }

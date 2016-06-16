@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	"straas.io/base/logger"
+	"straas.io/external"
 )
 
 const (
@@ -14,27 +15,38 @@ const (
 )
 
 // NewEtcd creates an instance of etcd
-func NewEtcd(c client.Client, timeout time.Duration, log logger.Logger) Etcd {
+func NewEtcd(c client.Client, timeout time.Duration, log logger.Logger) external.Etcd {
 	return &etcdImpl{
-		api:     client.NewKeysAPI(c),
+		api:     &keysImpl{api: client.NewKeysAPI(c)},
 		timeout: timeout,
 		log:     log,
 	}
 }
 
-// Etcd defines an interface for etcd operation
-type Etcd interface {
-	// GetAndWatch get the key recursively and then watch the key
-	GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.Response
-	// Get returns the response recursively with the given key
-	Get(etcdKey string, recursive bool) (*client.Response, error)
-	// Set sets the value to etcd
-	Set(etcdKey, value string) (*client.Response, error)
+// keysAPI bridge etc.KeysAPI interface for testing purpose
+// bcz we use vendor and etc/client use vendor as well, keysAPI mock implmenetation in our pkg
+// will lead to type mismatch problem:
+//   have Get("vendor/github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context".Context ...
+//   want Get("vendor/golang.org/x/net/context".Context ...
+// golang.org/x/net/context will be treated as different type
+// context will be build-in pkg in golang 1.7, then we cloud get rid of this problem
+type keysAPI interface {
+	// Get bridges etcd Get
+	Get(ctx context.Context, key string, opts *client.GetOptions) (*client.Response, error)
+	// Set bridges etcd Set
+	Set(ctx context.Context, key, value string, opts *client.SetOptions) (*client.Response, error)
+	// Watcher bridges etcd Watcher
+	Watcher(key string, opts *client.WatcherOptions) watcher
+}
+
+// watchr is also for bridging etc.Watcher
+type watcher interface {
+	Next(ctx context.Context) (*client.Response, error)
 }
 
 type etcdImpl struct {
 	log     logger.Logger
-	api     client.KeysAPI
+	api     keysAPI
 	timeout time.Duration
 }
 
@@ -99,7 +111,7 @@ func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.
 
 					// What to do ?
 					log.Errorf("fail to watch, err:%v", err)
-					// backoff if other error ?!
+					// TODO: backoff if other error ?!
 					continue
 				}
 				ch <- resp
@@ -135,7 +147,7 @@ func (a *etcdImpl) Set(etcdKey, value string) (*client.Response, error) {
 }
 
 // getWatcher returns watcher with the given key and index
-func (a *etcdImpl) getWatcher(etcdKey string, index uint64) client.Watcher {
+func (a *etcdImpl) getWatcher(etcdKey string, index uint64) watcher {
 	opt := &client.WatcherOptions{
 		Recursive:  true,
 		AfterIndex: index,

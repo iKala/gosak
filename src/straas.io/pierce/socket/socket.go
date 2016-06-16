@@ -15,24 +15,24 @@ var (
 	log = logger.Get()
 )
 
-// NewSocketServer creates an instance of socket server
-func NewSockerServer(coreMgr pierce.Core) *SocketServer {
-	return &SocketServer{
+// NewServer creates an instance of socket server
+func NewServer(coreMgr pierce.Core) *Server {
+	return &Server{
 		coreMgr:  coreMgr,
 		connLock: sync.Mutex{},
 		conns:    map[string]int{},
 	}
 }
 
-// SocketServer handles socket.io events
-type SocketServer struct {
+// Server handles socket.io events
+type Server struct {
 	coreMgr  pierce.Core
 	connLock sync.Mutex
 	conns    map[string]int
 }
 
 // Create creates a http handler for socket server
-func (s *SocketServer) Create() (http.Handler, error) {
+func (s *Server) Create() (http.Handler, error) {
 	server, err := socketio.NewServer(nil)
 
 	if err != nil {
@@ -53,18 +53,18 @@ func (s *SocketServer) Create() (http.Handler, error) {
 
 		// already in
 		var conn pierce.SocketConnection
-		var connId = so.Id()
+		var connID = so.Id()
 
 		connLock.Lock()
-		switch v := conns[connId]; v {
+		switch v := conns[connID]; v {
 		// first connect event
 		case 0:
-			conns[connId]++
+			conns[connID]++
 			connLock.Unlock()
 
 		// second connect event
 		case 1:
-			conns[connId]++
+			conns[connID]++
 			connLock.Unlock()
 			// TODO: extra room from token
 			conn = NewConn(so, []string{"aaa", "bbb"})
@@ -78,7 +78,7 @@ func (s *SocketServer) Create() (http.Handler, error) {
 			log.Infof("disconnect %s", so.Id())
 
 			connLock.Lock()
-			delete(conns, connId)
+			delete(conns, connID)
 			connLock.Unlock()
 
 			if conn != nil {
@@ -89,7 +89,7 @@ func (s *SocketServer) Create() (http.Handler, error) {
 
 	server.On("error", func(so socketio.Socket, err error) {
 		// TODO: record more
-		log.Errorf("socket fail error:", err)
+		log.Errorf("socket fail, err: %v", err)
 	})
 
 	return server, nil

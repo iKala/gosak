@@ -8,14 +8,6 @@ import (
 	"github.com/coreos/etcd/client"
 )
 
-// extractKey remoevs prefix from etcd key
-func extractKey(prefix, etcdKey string) (string, error) {
-	if !strings.HasPrefix(etcdKey, prefix) {
-		return "", fmt.Errorf("unexcepted etcd key %s for %s", etcdKey, prefix)
-	}
-	return strings.TrimPrefix(etcdKey[len(prefix):], "/"), nil
-}
-
 // unmarshaller
 func unmarshaller(value string, v interface{}) error {
 	return json.Unmarshal([]byte(value), v)
@@ -42,7 +34,7 @@ func setByPath(root interface{}, path string, v interface{}) (interface{}, error
 	var nested map[string]interface{}
 	root, nested, err := ensureMap(root, true)
 	if err != nil {
-		return nil, err
+		return root, err
 	}
 	keys := strings.Split(path, "/")
 	lastIdx := len(keys) - 1
@@ -55,7 +47,7 @@ func setByPath(root interface{}, path string, v interface{}) (interface{}, error
 		var cv map[string]interface{}
 		nested[key], cv, err = ensureMap(nested[key], true)
 		if err != nil {
-			return nil, err
+			return root, err
 		}
 		nested = cv
 	}
@@ -72,7 +64,7 @@ func delByPath(root interface{}, path string) (interface{}, error) {
 	var nested map[string]interface{}
 	_, nested, err := ensureMap(root, false)
 	if err != nil {
-		return nil, err
+		return root, err
 	}
 	if nested == nil {
 		return root, nil
@@ -89,7 +81,7 @@ func delByPath(root interface{}, path string) (interface{}, error) {
 		var cv map[string]interface{}
 		_, cv, err = ensureMap(nested[key], false)
 		if err != nil {
-			return nil, err
+			return root, err
 		}
 		if cv == nil {
 			break
@@ -112,7 +104,7 @@ func ensureMap(container interface{},
 		nested = map[string]interface{}{}
 		container = nested
 	} else if nested, ok = container.(map[string]interface{}); !ok {
-		return nil, nil, fmt.Errorf("cannot convert container to map")
+		return container, nil, fmt.Errorf("cannot convert container to map")
 	}
 	return container, nested, nil
 }
