@@ -7,6 +7,7 @@ package rest
 
 import (
 	"net/http"
+	"sync"
 
 	"straas.io/base/logger"
 
@@ -30,10 +31,9 @@ type Error struct {
 // New creates a new restful API builder
 func New(log logger.Logger) Rest {
 	return &restImpl{
-		router:        httprouter.New(),
-		middleware:    negroni.Classic(),
-		log:           log,
-		routerApplied: false,
+		router:     httprouter.New(),
+		middleware: negroni.Classic(),
+		log:        log,
 	}
 }
 
@@ -52,10 +52,10 @@ type Rest interface {
 }
 
 type restImpl struct {
-	router        *httprouter.Router
-	middleware    *negroni.Negroni
-	log           logger.Logger
-	routerApplied bool
+	router     *httprouter.Router
+	middleware *negroni.Negroni
+	log        logger.Logger
+	once       sync.Once
 }
 
 func (r *restImpl) GetHandler() http.Handler {
@@ -68,10 +68,7 @@ func (r *restImpl) Use(fn MiddlewareFunc) {
 
 func (r *restImpl) Route(method, path string, fn HandlerFunc) {
 	r.router.HandlerFunc(method, path, wrapper(fn, r.log))
-	if !r.routerApplied {
-		r.middleware.UseHandler(r.router)
-		r.routerApplied = true
-	}
+	r.once.Do(func() { r.middleware.UseHandler(r.router) })
 }
 
 func wrapper(fn HandlerFunc, log logger.Logger) http.HandlerFunc {
