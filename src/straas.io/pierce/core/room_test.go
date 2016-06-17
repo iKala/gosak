@@ -50,16 +50,16 @@ func (s *roomTestSuite) TestJoin() {
 	s.impl.Join(c2)
 	s.impl.loopOnce(wch)
 	s.impl.loopOnce(wch)
-	s.Equal(s.impl.connCount, 2)
+	s.Equal(len(s.impl.conns), 2)
 
 	s.impl.dataStr = "xxx"
 	s.impl.version = 10
 
 	s.impl.Join(c3)
 	s.impl.loopOnce(wch)
-	s.Equal(s.impl.connCount, 3)
+	s.Equal(len(s.impl.conns), 3)
 
-	s.Equal(s.impl.conns, map[pierce.SocketConnection]bool{
+	s.Equal(s.impl.connJoined, map[pierce.SocketConnection]bool{
 		c1: true,
 		c2: true,
 		c3: true,
@@ -79,8 +79,12 @@ func (s *roomTestSuite) TestLeave() {
 	c1.On("ID").Return("conn1")
 	c2.On("ID").Return("conn2")
 
-	s.impl.connCount = 3
 	s.impl.conns = map[pierce.SocketConnection]bool{
+		c1: true,
+		c2: true,
+		c3: true,
+	}
+	s.impl.connJoined = map[pierce.SocketConnection]bool{
 		c1: true,
 		c2: true,
 		c3: true,
@@ -91,8 +95,8 @@ func (s *roomTestSuite) TestLeave() {
 	s.impl.loopOnce(wch)
 	s.impl.loopOnce(wch)
 
-	s.Equal(s.impl.connCount, 1)
-	s.Equal(s.impl.conns, map[pierce.SocketConnection]bool{
+	s.Equal(len(s.impl.conns), 1)
+	s.Equal(s.impl.connJoined, map[pierce.SocketConnection]bool{
 		c3: true,
 	})
 	c1.AssertExpectations(s.T())
@@ -101,11 +105,17 @@ func (s *roomTestSuite) TestLeave() {
 }
 
 func (s *roomTestSuite) TestEmpty() {
-	s.impl.connCount = 3
-	s.False(s.impl.Empty())
-
-	s.impl.connCount = 0
 	s.True(s.impl.Empty())
+
+	c1 := &mocks.SocketConnection{}
+	c2 := &mocks.SocketConnection{}
+	c3 := &mocks.SocketConnection{}
+	s.impl.conns = map[pierce.SocketConnection]bool{
+		c1: true,
+		c2: true,
+		c3: true,
+	}
+	s.False(s.impl.Empty())
 }
 
 func (s *roomTestSuite) TestApplyChange() {
@@ -231,7 +241,7 @@ func (s *roomTestSuite) TestBroadcast() {
 	c1.On("Emit", testRoomID, "1234", uint64(101)).Return().Once()
 	c2.On("Emit", testRoomID, "1234", uint64(101)).Return().Once()
 
-	s.impl.conns = map[pierce.SocketConnection]bool{
+	s.impl.connJoined = map[pierce.SocketConnection]bool{
 		c1: true,
 		c2: true,
 	}

@@ -24,7 +24,7 @@ function runSocket() {
   });
 
   socket.on('error', function(err) {
-    logr('error', err);
+    log('error', err);
   });
 
   socket.on('connect_error', function(err) {

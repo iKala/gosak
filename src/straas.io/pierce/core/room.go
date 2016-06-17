@@ -28,14 +28,15 @@ func newRoom(id, etcdKey string, etcdAPI external.Etcd) Room {
 	log.Debugf("create room with key %s", etcdKey)
 
 	return &roomImpl{
-		id:        id,
-		conns:     map[pierce.SocketConnection]bool{},
-		connCount: 0,
-		etcdAPI:   etcdAPI,
-		etcdKey:   etcdKey,
-		chJoin:    make(chan pierce.SocketConnection, 10),
-		chLeave:   make(chan pierce.SocketConnection, 10),
-		chDone:    make(chan bool),
+		id:         id,
+		conns:      map[pierce.SocketConnection]bool{},
+		connJoined: map[pierce.SocketConnection]bool{},
+
+		etcdAPI: etcdAPI,
+		etcdKey: etcdKey,
+		chJoin:  make(chan pierce.SocketConnection, 10),
+		chLeave: make(chan pierce.SocketConnection, 10),
+		chDone:  make(chan bool),
 	}
 }
 
@@ -43,10 +44,10 @@ type roomImpl struct {
 	// room id
 	id string
 	// all pierce.SocketConnections in this room
-	conns map[pierce.SocketConnection]bool
+	connJoined map[pierce.SocketConnection]bool
 	// keep track real pierce.SocketConnection count (some might still in the channel)
-	connCount int
-	etcdAPI   external.Etcd
+	conns   map[pierce.SocketConnection]bool
+	etcdAPI external.Etcd
 	// channels
 	chJoin  chan pierce.SocketConnection
 	chLeave chan pierce.SocketConnection
@@ -67,24 +68,24 @@ func (r *roomImpl) Stop() {
 }
 
 func (r *roomImpl) Empty() bool {
-	return r.connCount == 0
+	return len(r.conns) == 0
 }
 
 func (r *roomImpl) Join(conn pierce.SocketConnection) {
 	log.Infof("connection %s join %s", conn.ID(), r.id)
-	r.connCount++
+	r.conns[conn] = true
 	r.chJoin <- conn
 }
 
 func (r *roomImpl) Leave(conn pierce.SocketConnection) {
 	log.Infof("connection %s leave %s", conn.ID(), r.id)
-	r.connCount--
+	delete(r.conns, conn)
 	r.chLeave <- conn
 }
 
 func (r *roomImpl) join(conn pierce.SocketConnection) {
-	r.conns[conn] = true
-	log.Infof("there %d conns in room %s", len(r.conns), r.id)
+	r.connJoined[conn] = true
+	log.Infof("there %d conns in room %s", len(r.connJoined), r.id)
 
 	// send if has data
 	if r.version > 0 {
@@ -94,7 +95,7 @@ func (r *roomImpl) join(conn pierce.SocketConnection) {
 
 func (r *roomImpl) leave(conn pierce.SocketConnection) {
 	// TODO: furthor notification ?!
-	delete(r.conns, conn)
+	delete(r.connJoined, conn)
 }
 
 func (r *roomImpl) mainLoop() {
@@ -178,8 +179,9 @@ func (r *roomImpl) applyChange(resp *client.Response) error {
 func (r *roomImpl) broadcast() {
 	r.dataStr, _ = marshaller(r.data)
 
+	// TODO: aggregates changes in case update too frequently
 	// TODO: check previous value
-	for conn := range r.conns {
+	for conn := range r.connJoined {
 		conn.Emit(r.id, r.dataStr, r.version)
 	}
 }
