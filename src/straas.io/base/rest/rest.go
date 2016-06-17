@@ -8,6 +8,7 @@ package rest
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"straas.io/base/logger"
 
@@ -32,7 +33,7 @@ type Error struct {
 func New(log logger.Logger) Rest {
 	return &restImpl{
 		router:     httprouter.New(),
-		middleware: negroni.Classic(),
+		middleware: negroni.New(negroni.NewRecovery(), &restLogger{Logger: log}),
 		log:        log,
 	}
 }
@@ -80,4 +81,20 @@ func wrapper(fn HandlerFunc, log logger.Logger) http.HandlerFunc {
 			http.Error(rw, restErr.Error.Error(), restErr.Code)
 		}
 	}
+}
+
+// restLogger wraps our own base/logger as a negroni middleware
+type restLogger struct {
+	logger.Logger
+}
+
+// ServeHTTP logs http access and process time
+func (l *restLogger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	start := time.Now()
+	l.Printf("[rest] Started %s %s", r.Method, r.URL.Path)
+
+	next(rw, r)
+
+	res := rw.(negroni.ResponseWriter)
+	l.Printf("[rest] Completed %v %s in %v", res.Status(), http.StatusText(res.Status()), time.Since(start))
 }
