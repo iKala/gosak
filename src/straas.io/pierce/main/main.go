@@ -8,8 +8,6 @@ import (
 	"straas.io/base/ctrl"
 	"straas.io/base/logger"
 	"straas.io/pierce/rest"
-
-	"github.com/codegangsta/negroni"
 )
 
 var (
@@ -21,16 +19,12 @@ var (
 func main() {
 	flag.Parse()
 
-	var handler rest.Handler
-
-	router := rest.BuildRouter(handler)
-	n := negroni.Classic()
-	n.UseHandler(router)
+	handler := rest.BuildHTTPHandler(log)
 
 	go func() {
 		log.Fatal(ctrl.RunController(*portCtrl))
 	}()
 
 	log.Infof("[main] starting restful API server")
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portRest), n))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portRest), handler))
 }
