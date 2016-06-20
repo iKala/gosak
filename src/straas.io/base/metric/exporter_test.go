@@ -192,6 +192,35 @@ func (s *exporterTestSuite) TestExportOnce() {
 	}).Once()
 
 	exp := createExporter(&mockFluent, testTag)
-	exportOnce(lastUpdate, exp)
+	doExportOnce(lastUpdate, exp)
 	mockFluent.AssertExpectations(s.T())
+}
+
+func (s *exporterTestSuite) TestRunExport() {
+	ticker := make(chan time.Time, 10)
+	done := make(chan bool)
+
+	fakeExp := exporter(func(pkg, name string, count, sum, avg float64) {
+	})
+	count := 0
+	prev := time.Unix(0, 0)
+	exportOnce = func(lastUpdate time.Time, exp exporter) time.Time {
+		s.Equal(prev, lastUpdate)
+		next := lastUpdate.Add(time.Minute)
+		prev = next
+
+		count++
+		if count == 3 {
+			close(done)
+			return next
+		}
+		ticker <- time.Now()
+		return next
+	}
+
+	ticker <- time.Now()
+
+	runExport(fakeExp, ticker, done)
+	// extra export
+	s.Equal(count, 4)
 }

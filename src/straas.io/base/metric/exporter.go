@@ -21,8 +21,11 @@ var (
 )
 
 // StartExport start export metrics
-func StartExport(fluent external.Fluent, tag string, done chan bool) {
-	go runExport(fluent, tag, done)
+func StartExport(fluent external.Fluent, tag string, done <-chan bool) {
+	exp := createExporter(fluent, tag)
+	ticker := time.NewTicker(checkInterval).C
+
+	go runExport(exp, ticker, done)
 }
 
 // exporter define export type
@@ -30,20 +33,18 @@ type exporter func(pkg, name string, count, sum, avg float64)
 
 // for test
 var getSnapshot = metric.GetSnapshot
+var exportOnce = doExportOnce
 
-func runExport(fluent external.Fluent, tag string, done chan bool) {
+func runExport(exp exporter, ticker <-chan time.Time, done <-chan bool) {
 	lastUpdate := time.Unix(0, 0)
-	exp := createExporter(fluent, tag)
-	after := time.NewTimer(checkInterval)
-
 	for {
-		after.Reset(checkInterval)
 		select {
-		case <-after.C:
 		case <-done:
-			break
+			// flush all metrics if possible
+			exportOnce(lastUpdate, exp)
+			return
+		case <-ticker:
 		}
-
 		lastUpdate = exportOnce(lastUpdate, exp)
 	}
 }
@@ -61,7 +62,7 @@ func createExporter(fluent external.Fluent, tag string) exporter {
 	}
 }
 
-func exportOnce(lastUpdated time.Time, exp exporter) time.Time {
+func doExportOnce(lastUpdated time.Time, exp exporter) time.Time {
 	nextUpdate := lastUpdated
 
 	for _, s := range getSnapshot("*", "*") {
