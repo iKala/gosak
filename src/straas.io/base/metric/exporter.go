@@ -34,9 +34,17 @@ var getSnapshot = metric.GetSnapshot
 func runExport(fluent external.Fluent, tag string, done chan bool) {
 	lastUpdate := time.Unix(0, 0)
 	exp := createExporter(fluent, tag)
+	after := time.NewTimer(checkInterval)
+
 	for {
+		after.Reset(checkInterval)
+		select {
+		case <-after.C:
+		case <-done:
+			break
+		}
+
 		lastUpdate = exportOnce(lastUpdate, exp)
-		time.Sleep(checkInterval)
 	}
 }
 

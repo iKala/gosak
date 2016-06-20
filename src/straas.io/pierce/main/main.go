@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"time"
 
 	"straas.io/base/ctrl"
 	"straas.io/base/logger"
@@ -34,17 +33,11 @@ func main() {
 
 	metric.StartExport(fluentLogger, *metricExportTag, nil)
 
-	stat := metric.New("pierce")
-	go func() {
-		for {
-			stat.BumpSum("aaa.bb", 1)
-			time.Sleep(3 * time.Second)
-		}
-	}()
 	go func() {
 		log.Fatal(ctrl.RunController(*portCtrl))
 	}()
 
+	stat := metric.New("pierce")
 	handler := rest.BuildHTTPHandler(log, stat)
 
 	log.Infof("[main] starting restful API server")
