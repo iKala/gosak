@@ -45,17 +45,27 @@ func (s *Server) Create() (http.Handler, error) {
 		log.Info("url", so.Request().URL)
 
 		var conn pierce.SocketConnection
-		so.On("join", func(msg string) {
+		var err error
+
+		err = so.On("join", func(msg string) {
 			conn = NewConn(so, []string{"aaa", "bbb"})
 			coreMgr.Join(conn)
 		})
+		if err != nil {
+			// only get error when caller mis-uses the api
+			log.Fatalf("fail to listen join event, err:%v", err)
+		}
 
-		so.On("disconnection", func() {
+		err = so.On("disconnection", func() {
 			log.Infof("disconnect %s", so.Id())
 			if conn != nil {
 				coreMgr.Leave(conn)
 			}
 		})
+		if err != nil {
+			// only get error when caller mis-uses the api
+			log.Fatalf("fail to listen disconnect event, err:%v", err)
+		}
 	})
 
 	server.On("error", func(so socketio.Socket, err error) {
