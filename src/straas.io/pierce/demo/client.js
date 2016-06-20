@@ -9,7 +9,7 @@ function runSocket() {
 
   var socket = socketio.connect(socketUrl, {
     transports: ['websocket'],
-    'reconnection': false,
+    'reconnection': true,
     'forceNew': true,
     'reconnectionDelayMax': 3000,
     'query': 'role=agent',
@@ -21,14 +21,12 @@ function runSocket() {
 
   socket.on('connect', function() {
     log('connect');
+
+    socket.emit("join");
   });
 
   socket.on('error', function(err) {
     log('error', err);
-  });
-
-  socket.on('connect_error', function(err) {
-    log('connect_error', err);
   });
 
   socket.on('connect_timeout', function(err) {

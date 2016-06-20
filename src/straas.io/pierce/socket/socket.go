@@ -3,7 +3,6 @@ package socket
 import (
 	"fmt"
 	"net/http"
-	"sync"
 
 	socketio "github.com/googollee/go-socket.io"
 
@@ -18,17 +17,13 @@ var (
 // NewServer creates an instance of socket server
 func NewServer(coreMgr pierce.Core) *Server {
 	return &Server{
-		coreMgr:  coreMgr,
-		connLock: sync.Mutex{},
-		conns:    map[string]int{},
+		coreMgr: coreMgr,
 	}
 }
 
 // Server handles socket.io events
 type Server struct {
-	coreMgr  pierce.Core
-	connLock sync.Mutex
-	conns    map[string]int
+	coreMgr pierce.Core
 }
 
 // Create creates a http handler for socket server
@@ -40,47 +35,23 @@ func (s *Server) Create() (http.Handler, error) {
 	}
 
 	// short path
-	conns := s.conns
-	connLock := s.connLock
 	coreMgr := s.coreMgr
 
 	// IMPORTANT:
 	// there is a problem, golang socket.io will trigger
 	// connection event twice, and we should be the second
-	// socket
+	// socket, now socket askes client side to send join event for simplify the problem
 	server.On("connection", func(so socketio.Socket) {
 		log.Info("url", so.Request().URL)
 
-		// already in
 		var conn pierce.SocketConnection
-		var connID = so.Id()
-
-		connLock.Lock()
-		switch v := conns[connID]; v {
-		// first connect event
-		case 0:
-			conns[connID]++
-			connLock.Unlock()
-
-		// second connect event
-		case 1:
-			conns[connID]++
-			connLock.Unlock()
-			// TODO: extra room from token
+		so.On("join", func(msg string) {
 			conn = NewConn(so, []string{"aaa", "bbb"})
 			coreMgr.Join(conn)
+		})
 
-		default:
-			connLock.Unlock()
-			return
-		}
 		so.On("disconnection", func() {
 			log.Infof("disconnect %s", so.Id())
-
-			connLock.Lock()
-			delete(conns, connID)
-			connLock.Unlock()
-
 			if conn != nil {
 				coreMgr.Leave(conn)
 			}

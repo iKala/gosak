@@ -39,7 +39,7 @@ type keysAPI interface {
 	Watcher(key string, opts *client.WatcherOptions) watcher
 }
 
-// watchr is also for bridging etc.Watcher
+// watcher is also for bridging etc.Watcher
 type watcher interface {
 	Next(ctx context.Context) (*client.Response, error)
 }
@@ -50,7 +50,7 @@ type etcdImpl struct {
 	timeout time.Duration
 }
 
-// watch returns a chan for etcd response, this function will handle error reconnect
+// GetAndWatch returns a chan for etcd response, this function will handle error reconnect
 // and outdate.
 func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.Response {
 	// check if need to leave loop
@@ -77,7 +77,6 @@ func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.
 			resp, err := a.Get(etcdKey, true)
 			if err != nil {
 				log.Errorf("fail to get value, err:%v", err)
-				// TODO: key not found
 				// TODO: backoff
 				continue
 			}
