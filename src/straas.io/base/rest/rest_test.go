@@ -12,7 +12,6 @@ import (
 	"straas.io/base/logger"
 	"straas.io/base/metric"
 
-	cmetric "github.com/csigo/metric"
 	"github.com/stretchr/testify/suite"
 )
 
