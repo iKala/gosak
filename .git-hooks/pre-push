@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Allows us to read user input below, assigns stdin to keyboard
+exec < /dev/tty
+
 echo "[go vet]"
 go vet $(go list straas.io/...)
 echo
@@ -9,3 +12,14 @@ go list straas.io/... | grep -v "mocks" | xargs -n 1 golint
 
 echo
 go test $(go list straas.io/...)
+
+if [ $? -ne 0 ]; then
+	echo "Run unit test fail, push anyway (y/N) ?"
+	read -n 1 -r
+
+	if [[ $REPLY =~ ^[Yy]$ ]]
+	then
+	    exit 0
+	fi
+	exit 1
+fi
