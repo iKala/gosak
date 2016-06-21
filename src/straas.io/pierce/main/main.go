@@ -8,30 +8,29 @@ import (
 	"straas.io/base/ctrl"
 	"straas.io/base/logger"
 	"straas.io/base/metric"
-	"straas.io/external/fluent"
 	"straas.io/pierce/rest"
+	"straas.io/service/common"
+	"straas.io/service/manager"
 )
 
 var (
 	portCtrl        = flag.Int("portCtrl", 8000, "port for health check")
 	portRest        = flag.Int("portRest", 11300, "Restful API port")
-	fluentEnable    = flag.Bool("fluentEnable", false, "fluent enable")
-	fluentHost      = flag.String("fluentHost", "", "fluent hostname")
-	fluentPort      = flag.Int("fluentPort", 24224, "fluent port")
 	metricExportTag = flag.String("metricExportTag", "", "metric export tag")
 
-	log = logger.Get()
+	log        = logger.Get()
+	srvManager = manager.New(common.MetricExporter)
 )
 
 func main() {
 	flag.Parse()
 
-	fluentLogger, err := fluent.New(*fluentEnable, *fluentHost, *fluentPort)
-	if err != nil {
-		log.Fatalf("fail to create fluent, err:%v", err)
+	if err := srvManager.Init(); err != nil {
+		log.Fatalf("fail to init services, err:%v", err)
 	}
 
-	metric.StartExport(fluentLogger, *metricExportTag, nil)
+	// checks
+	srvManager.MustGet(common.MetricExporter)
 
 	go func() {
 		log.Fatal(ctrl.RunController(*portCtrl))

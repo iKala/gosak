@@ -29,6 +29,7 @@ type Stackdriver interface {
 	List(project, filter, op string, start, end time.Time) ([]Point, error)
 }
 
+// Fluent deinfes an interface to post data to fluent
 type Fluent interface {
 	// Post posts data to fluent
 	Post(tag string, v interface{})
