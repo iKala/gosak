@@ -56,6 +56,10 @@ type etcdImpl struct {
 // GetAndWatch returns a chan for etcd response, this function will handle error reconnect
 // and outdate.
 func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.Response {
+	return a.getAndWatch(etcdKey, done, make(chan bool))
+}
+
+func (a *etcdImpl) getAndWatch(etcdKey string, done <-chan bool, fin chan<- bool) <-chan *client.Response {
 	// check if need to leave loop
 	checkDone := func() bool {
 		// check return ?
@@ -73,6 +77,9 @@ func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.
 	stat := a.stat
 
 	go func() {
+		defer func() {
+			close(fin)
+		}()
 		for {
 			if checkDone() {
 				return
