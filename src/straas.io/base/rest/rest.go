@@ -6,13 +6,16 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"straas.io/base/logger"
 
 	"github.com/codegangsta/negroni"
+	"github.com/facebookgo/stats"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -30,11 +33,12 @@ type Error struct {
 }
 
 // New creates a new restful API builder
-func New(log logger.Logger) Rest {
+func New(log logger.Logger, stat stats.Client) Rest {
 	return &restImpl{
 		router:     httprouter.New(),
 		middleware: negroni.New(negroni.NewRecovery(), &restLogger{Logger: log}),
 		log:        log,
+		stat:       stat,
 	}
 }
 
@@ -56,6 +60,7 @@ type restImpl struct {
 	router     *httprouter.Router
 	middleware *negroni.Negroni
 	log        logger.Logger
+	stat       stats.Client
 	once       sync.Once
 }
 
@@ -68,17 +73,28 @@ func (r *restImpl) Use(fn MiddlewareFunc) {
 }
 
 func (r *restImpl) Route(method, path string, fn HandlerFunc) {
-	r.router.HandlerFunc(method, path, wrapper(fn, r.log))
+	r.router.HandlerFunc(method, path, r.wrapper(method, path, fn))
 	r.once.Do(func() { r.middleware.UseHandler(r.router) })
 }
 
-func wrapper(fn HandlerFunc, log logger.Logger) http.HandlerFunc {
+func (r *restImpl) wrapper(method, path string, fn HandlerFunc) http.HandlerFunc {
+	// prepare metric name prefix
+	// remove "/" at the begining of path
+	// replace "/" as "."
+	path = strings.TrimPrefix(path, "/")
+	path = strings.Replace(path, "/", ".", -1)
+	prefix := fmt.Sprintf("rest.%s.%s.", method, path)
+
 	return func(rw http.ResponseWriter, req *http.Request) {
+		defer r.stat.BumpTime(prefix + "proc_time").End()
+		r.stat.BumpSum(prefix+"request", 1)
 		if restErr := fn(rw, req); restErr != nil {
 			if restErr.Detail != "" {
-				log.Errorf("error detail: %s", restErr.Detail)
+				r.log.Errorf("error detail: %s", restErr.Detail)
 			}
 			http.Error(rw, restErr.Error.Error(), restErr.Code)
+			r.stat.BumpSum(fmt.Sprintf("%ss%d", prefix, restErr.Code), 1)
+			return
 		}
 	}
 }

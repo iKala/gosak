@@ -56,3 +56,14 @@ import:
   version: 902d2a2ec1dcb9ec3c5fde29917e1d2eceea2182
 - package: github.com/julienschmidt/httprouter
   version: 77366a47451a56bb3ba682481eed85b64fea14e8
+- package: github.com/csigo/metric
+  version: 4dec921802d30869fa08b219e1cfcbb3b97fb6a9
+- package: github.com/facebookgo/stats
+- package: github.com/fluent/fluent-logger-golang
+  version: 8ba04e26e7839fc5ccdae3a1d2e0d77515af0f32
+  subpackages:
+  - fluent
+- package: github.com/tinylib/msgp
+  version: 05e600edf28f1b907005ddf6b0488fe68b819971
+  subpackages:
+  - msgp

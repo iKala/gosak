@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"straas.io/base/logger"
+	"straas.io/base/metric"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -29,7 +30,7 @@ func (suite *RestTestSuite) TestHealthCheck() {
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	suite.Equal(nil, err)
 
-	handler := BuildHTTPHandler(log)
+	handler := BuildHTTPHandler(log, metric.New("test"))
 	handler.ServeHTTP(response, req)
 
 	body, err := ioutil.ReadAll(response.Body)
