@@ -1,0 +1,5 @@
+
+go test $(go list straas.io/...)
+
+
+exit 1
