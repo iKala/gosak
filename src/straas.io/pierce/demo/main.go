@@ -9,6 +9,7 @@ import (
 	"github.com/coreos/etcd/client"
 
 	"straas.io/base/logger"
+	"straas.io/base/metric"
 	"straas.io/external/etcd"
 	"straas.io/pierce/core"
 	"straas.io/pierce/socket"
@@ -41,7 +42,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	etcdAPI := etcd.NewEtcd(c, 10*time.Second, log)
+	stat := metric.New("pierce")
+	etcdAPI := etcd.NewEtcd(c, 10*time.Second, log, stat)
 	coreMgr := core.NewCore(etcdAPI, "/pierce")
 	coreMgr.Start()
 

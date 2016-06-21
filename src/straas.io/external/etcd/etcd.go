@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
+	"github.com/facebookgo/stats"
 	"golang.org/x/net/context"
 
 	"straas.io/base/logger"
@@ -15,10 +16,11 @@ const (
 )
 
 // NewEtcd creates an instance of etcd
-func NewEtcd(c client.Client, timeout time.Duration, log logger.Logger) external.Etcd {
+func NewEtcd(c client.Client, timeout time.Duration, log logger.Logger, stat stats.Client) external.Etcd {
 	return &etcdImpl{
 		api:     &keysImpl{api: client.NewKeysAPI(c)},
 		timeout: timeout,
+		stat:    stat,
 		log:     log,
 	}
 }
@@ -46,6 +48,7 @@ type watcher interface {
 
 type etcdImpl struct {
 	log     logger.Logger
+	stat    stats.Client
 	api     keysAPI
 	timeout time.Duration
 }
@@ -67,6 +70,7 @@ func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.
 
 	ch := make(chan *client.Response, bufferSize)
 	log := a.log
+	stat := a.stat
 
 	go func() {
 		for {
@@ -105,10 +109,12 @@ func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.
 					cerr, ok := err.(*client.Error)
 					// index outdate, need to restart watch loop
 					if ok && cerr.Code == client.ErrorCodeEventIndexCleared {
+						stat.BumpSum("etcd.indexoutdated.err", 1)
 						break
 					}
 
 					// What to do ?
+					stat.BumpSum("etcd.watchnext.err", 1)
 					log.Errorf("fail to watch, err:%v", err)
 					// TODO: backoff if other error ?!
 					continue
@@ -122,27 +128,41 @@ func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.
 }
 
 func (a *etcdImpl) Get(etcdKey string, recursive bool) (*client.Response, error) {
+	a.stat.BumpSum("etcd.get", 1)
+
 	opt := &client.GetOptions{
 		Recursive: recursive,
 		// TODO: not sure quorum is necessary or not
 		// Quorum:    true,
 	}
-	ctx, _ := context.WithTimeout(context.Background(), a.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
+	defer cancel()
+
 	resp, err := a.api.Get(ctx, etcdKey, opt)
 	if cErr, ok := err.(client.Error); ok && cErr.Code == client.ErrorCodeKeyNotFound {
 		// simulate an empty dir
 		return emptyDirResponse(etcdKey, cErr.Index), nil
 	}
 	if err != nil {
+		a.stat.BumpSum("etcd.get.err", 1)
 		return nil, err
 	}
 	return resp, nil
 }
 
 func (a *etcdImpl) Set(etcdKey, value string) (*client.Response, error) {
+	a.stat.BumpSum("etcd.set", 1)
+
 	opt := &client.SetOptions{}
-	ctx, _ := context.WithTimeout(context.Background(), a.timeout)
-	return a.api.Set(ctx, etcdKey, value, opt)
+	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
+	defer cancel()
+
+	resp, err := a.api.Set(ctx, etcdKey, value, opt)
+	if err != nil {
+		a.stat.BumpSum("etcd.set.err", 1)
+		return nil, err
+	}
+	return resp, nil
 }
 
 // getWatcher returns watcher with the given key and index
