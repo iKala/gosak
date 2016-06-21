@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 
 	"straas.io/base/logger"
-	"straas.io/external/mocks"
+	"straas.io/base/metric"
 )
 
 const (
@@ -24,14 +24,15 @@ func TestEtcd(t *testing.T) {
 type etcdTestSuite struct {
 	suite.Suite
 	impl   *etcdImpl
-	keyAPI *mocks.keysAPIMock
+	keyAPI *keysAPIMock
 }
 
 func (s *etcdTestSuite) SetupTest() {
-	s.keyAPI = &mocks.keysAPIMock{}
+	s.keyAPI = &keysAPIMock{}
 	s.impl = &etcdImpl{
-		log: logger.Get(),
-		api: s.keyAPI,
+		log:  logger.Get(),
+		stat: metric.New("test"),
+		api:  s.keyAPI,
 	}
 }
 
