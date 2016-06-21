@@ -31,6 +31,11 @@ type Stackdriver interface {
 	List(project, filter, op string, start, end time.Time) ([]Point, error)
 }
 
+type Fluent interface {
+	// Post posts data to fluent
+	Post(tag string, v interface{})
+}
+
 // Point is stackdriver timeseries point
 type Point struct {
 	Start time.Time

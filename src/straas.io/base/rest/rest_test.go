@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"straas.io/base/logger"
+	"straas.io/base/metric"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -33,7 +34,7 @@ func (suite *RestHandlerTestSuite) TestSimpleRoute() {
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	suite.Equal(nil, err)
 
-	router := New(log)
+	router := New(log, metric.New("test"))
 	router.Route("GET", "/healthcheck", okEchoer)
 	handler := router.GetHandler()
 	handler.ServeHTTP(suite.response, req)
@@ -48,7 +49,7 @@ func (suite *RestHandlerTestSuite) Test404ForNonexistingRoute() {
 	req, err := http.NewRequest("GET", "/thereIsNoSuchRoute", nil)
 	suite.Equal(nil, err)
 
-	router := New(log)
+	router := New(log, metric.New("test"))
 	router.Route("GET", "/ok", okEchoer)
 	handler := router.GetHandler()
 	handler.ServeHTTP(suite.response, req)
@@ -62,7 +63,7 @@ func (suite *RestHandlerTestSuite) TestSimpleMiddleware() {
 	req, err := http.NewRequest("GET", "/ok", nil)
 	suite.Equal(nil, err)
 
-	router := New(log)
+	router := New(log, metric.New("test"))
 	router.Use(karaInserter)
 	router.Route("GET", "/ok", okEchoer)
 	handler := router.GetHandler()
@@ -75,7 +76,7 @@ func (suite *RestHandlerTestSuite) TestSimpleMiddleware() {
 }
 
 func (suite *RestHandlerTestSuite) TestMultipleRoutes() {
-	router := New(log)
+	router := New(log, metric.New("test"))
 	router.Route("GET", "/ok", okEchoer)
 	router.Route("GET", "/foo", fooEchoer)
 	handler := router.GetHandler()
@@ -102,7 +103,7 @@ func (suite *RestHandlerTestSuite) TestHandlerReturnError() {
 	req, err := http.NewRequest("GET", "/ok", nil)
 	suite.Equal(nil, err)
 
-	router := New(log)
+	router := New(log, metric.New("test"))
 	errorStr := "user sees this string so I can't say anything here"
 	router.Route("GET", "/ok", func(rw http.ResponseWriter, req *http.Request) *Error {
 		return &Error{
@@ -124,7 +125,7 @@ func (suite *RestHandlerTestSuite) TestMiddlewareReturnError() {
 	req, err := http.NewRequest("GET", "/ok", nil)
 	suite.Equal(nil, err)
 
-	router := New(log)
+	router := New(log, metric.New("test"))
 	errorStr := "user sees this string so I can't say anything here"
 	router.Use(func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
 		http.Error(rw, errorStr, http.StatusInternalServerError)
