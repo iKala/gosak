@@ -14,9 +14,8 @@ import (
 )
 
 var (
-	portCtrl        = flag.Int("portCtrl", 8000, "port for health check")
-	portRest        = flag.Int("portRest", 11300, "Restful API port")
-	metricExportTag = flag.String("metricExportTag", "", "metric export tag")
+	portCtrl = flag.Int("portCtrl", 8000, "port for health check")
+	portRest = flag.Int("portRest", 11300, "Restful API port")
 
 	log        = logger.Get()
 	srvManager = manager.New(common.MetricExporter)
