@@ -163,6 +163,7 @@ func (s *objectTestSuite) TestSetByPath() {
 
 	// replace root
 	v, err = setByPath(v, "", 60)
+	s.NoError(err)
 	s.Equal(v, 60)
 }
 
