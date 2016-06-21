@@ -1,9 +1,11 @@
 #!/bin/sh
-#
-# Usage:
-# cp .git-hooks/* .git/hooks
-# chmod u+x .git/hooks/post-checkout
-#
 
+echo "[go vet]"
+go vet $(go list straas.io/...)
+echo
+
+echo "[goling]"
+go list straas.io/... | grep -v "mocks" | xargs -n 1 golint
+
+echo
 go test $(go list straas.io/...)
-exit 1
