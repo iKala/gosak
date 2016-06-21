@@ -2,6 +2,8 @@ package external
 
 import (
 	"time"
+
+	"github.com/coreos/etcd/client"
 )
 
 // Slack defines an interface for post slack message
@@ -40,4 +42,14 @@ type Point struct {
 	Start time.Time
 	End   time.Time
 	Value float64
+}
+
+// Etcd defines an interface for etcd operation
+type Etcd interface {
+	// GetAndWatch get the key recursively and then watch the key
+	GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.Response
+	// Get returns the response recursively with the given key
+	Get(etcdKey string, recursive bool) (*client.Response, error)
+	// Set sets the value to etcd
+	Set(etcdKey, value string) (*client.Response, error)
 }
