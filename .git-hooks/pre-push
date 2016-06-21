@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# Usage:
+# cp .git-hooks/* .git/hooks
+# chmod u+x .git/hooks/post-checkout
+#
+
+go test $(go list straas.io/...)
+exit 1
