@@ -1,0 +1,19 @@
+FROM golang:1.6.2
+
+RUN go get \
+  github.com/Masterminds/glide \
+  github.com/vektra/mockery \
+  github.com/golang/lint/golint \
+  golang.org/x/tools/cmd/...
+
+# only need bin
+RUN mkdir /usr/local/go/tools
+RUN mv /go/bin/* /usr/local/go/tools
+RUN rm -r /go/src /go/pkg /go/bin
+
+ARG MY_UID=501
+RUN useradd -ms /bin/bash devuser --uid $MY_UID
+
+ENV PATH=/usr/local/go/tools:$PATH
+USER devuser
+WORKDIR /go

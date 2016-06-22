@@ -8,6 +8,13 @@ This repo is for golang projects of straas
 4. make sure $GOPATH/bin in $PATH
 5. install https://github.com/golang/lint
 
+# Dev docker (Recommended)
+```
+// in project root
+bash script/common/docker-dev.sh build
+bash script/common/docker-dev.sh run
+```
+
 ## Installation
 ```
 cd src/
