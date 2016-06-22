@@ -41,7 +41,7 @@ func (s *roomTestSuite) TestJoin() {
 	// for logs
 	c1.On("ID").Return("conn1")
 	c2.On("ID").Return("conn2")
-	c3.On("ID").Return("conn2")
+	c3.On("ID").Return("conn3")
 
 	// only c3 got emit
 	c3.On("Emit", testRoomID, "xxx", uint64(10)).Return().Once()
