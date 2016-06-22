@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"flag"
 	"fmt"
 
 	"straas.io/service/common"
@@ -49,6 +50,9 @@ type managerImpl struct {
 }
 
 func (m *managerImpl) Init() error {
+	if !flag.Parsed() {
+		panic("flag is not parsed")
+	}
 	if m.inited {
 		panic("already inited")
 	}
