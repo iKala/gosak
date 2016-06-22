@@ -34,7 +34,6 @@ func (s *ServiceTestSuite) TestDependOn() {
 	s5.On("Dependencies").Return([]ServiceType{"s1", "s9"})
 	s6.On("Dependencies").Return([]ServiceType{"s2"})
 
-	// two disconnected component
 	services = map[ServiceType]Service{
 		"s1": s1,
 		"s2": s2,
@@ -78,6 +77,7 @@ func (s *ServiceTestSuite) TestRegisterCyclic() {
 	s2 := &ServiceMock{}
 	s3 := &ServiceMock{}
 	s4 := &ServiceMock{}
+	s5 := &ServiceMock{}
 	s1.On("Type").Return(ServiceType("s1"))
 	s1.On("Dependencies").Return([]ServiceType{"s2", "s3"})
 
@@ -90,6 +90,9 @@ func (s *ServiceTestSuite) TestRegisterCyclic() {
 	s4.On("Type").Return(ServiceType("s4"))
 	s4.On("Dependencies").Return([]ServiceType{"s2"})
 
+	s5.On("Type").Return(ServiceType("s5"))
+	s5.On("Dependencies").Return([]ServiceType{"s5"})
+
 	Register(s1)
 	Register(s2)
 	// register duplicated service
@@ -97,4 +100,8 @@ func (s *ServiceTestSuite) TestRegisterCyclic() {
 		Register(s3)
 	})
 	Register(s4)
+	// depend on itself
+	s.Assert().Panics(func() {
+		Register(s5)
+	})
 }

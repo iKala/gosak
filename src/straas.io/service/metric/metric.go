@@ -21,7 +21,7 @@ func (s *service) Type() common.ServiceType {
 }
 
 func (s *service) AddFlags() {
-	flag.StringVar(&s.tag, "common_metric_tag", "metric", "metric fluent tag tag")
+	flag.StringVar(&s.tag, "common_metric_tag", "metric", "metric fluent tag")
 }
 
 func (s *service) New(get common.ServiceGetter) (interface{}, error) {

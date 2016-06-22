@@ -41,7 +41,7 @@ case $CMD in
     docker exec -it ${CONTAINER_NAME} env TERM=xterm $@
     ;;
   *)
-    echo "no such command $CMD, please run 'docker/docker-dev.sh help' for detail usage"
+    echo "no such command $CMD, please run '${DIR}/docker-dev.sh help' for detail usage"
     exit 1
     ;;
 esac

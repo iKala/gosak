@@ -34,22 +34,20 @@ var (
 
 // Register must be put in init()
 func Register(s Service) {
-	// check circular dependency
+	if _, ok := services[s.Type()]; ok {
+		panic(fmt.Errorf("already register service %v", s.Type()))
+	}
 	for _, st := range s.Dependencies() {
-		if _, ok := services[st]; !ok {
-			continue
-		}
 		if st == s.Type() {
 			panic(fmt.Errorf("cannot depend on itself"))
+		}
+		if _, ok := services[st]; !ok {
+			continue
 		}
 		// mutual dependencies leads to cycle dependencies
 		if dependOn(st, s.Type()) {
 			panic(fmt.Errorf("cycle dependecies"))
 		}
-	}
-	_, ok := services[s.Type()]
-	if ok {
-		panic(fmt.Errorf("already register service %v", s.Type()))
 	}
 	services[s.Type()] = s
 }
