@@ -11,7 +11,7 @@ echo "[goling]"
 go list straas.io/... | grep -v "mocks" | xargs -n 1 golint
 
 echo
-go test $(go list straas.io/...)
+go test -cover $(go list straas.io/...)
 
 if [ $? -ne 0 ]; then
   echo "Run unit test fail, push anyway (y/N) ?"
