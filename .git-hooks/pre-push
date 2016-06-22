@@ -7,7 +7,7 @@ echo "[go vet]"
 go vet $(go list straas.io/...)
 echo
 
-echo "[goling]"
+echo "[golint]"
 go list straas.io/... | grep -v "mocks" | xargs -n 1 golint
 
 echo
