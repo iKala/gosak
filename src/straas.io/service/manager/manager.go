@@ -12,11 +12,11 @@ import (
 
 // New creates an instance of manager
 func New(types ...common.ServiceType) Manager {
-	return newMgr(common.Services(), types...)
+	return newMgr(common.Services(), types)
 }
 
 func newMgr(services map[common.ServiceType]common.Service,
-	types ...common.ServiceType) Manager {
+	types []common.ServiceType) Manager {
 	if len(types) == 0 {
 		panic(fmt.Errorf("no service types"))
 	}
@@ -27,7 +27,7 @@ func newMgr(services map[common.ServiceType]common.Service,
 	}
 	// add flags
 	touched := map[common.ServiceType]bool{}
-	m.addFlags(touched, types...)
+	m.addFlags(touched, types)
 	return m
 }
 
@@ -84,7 +84,7 @@ func (m *managerImpl) Get(t common.ServiceType) (interface{}, error) {
 }
 
 func (m *managerImpl) addFlags(touched map[common.ServiceType]bool,
-	ts ...common.ServiceType) {
+	ts []common.ServiceType) {
 
 	for _, t := range ts {
 		if touched[t] {
@@ -96,7 +96,7 @@ func (m *managerImpl) addFlags(touched map[common.ServiceType]bool,
 			panic(fmt.Errorf("serivce %v is not registered yet", t))
 		}
 		srv.AddFlags()
-		m.addFlags(touched, srv.Dependencies()...)
+		m.addFlags(touched, srv.Dependencies())
 	}
 }
 
