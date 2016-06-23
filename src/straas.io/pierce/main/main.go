@@ -44,7 +44,7 @@ func main() {
 	ctrl := srvManager.MustGet(common.Controller).(func() error)
 	etcdAPI := srvManager.MustGet(common.Etcd).(external.Etcd)
 
-	// start contruller
+	// start controller
 	go func() {
 		log.Fatal(ctrl())
 	}()
