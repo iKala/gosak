@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/md5"
 	"fmt"
 	"time"
 
@@ -113,10 +114,13 @@ func (r *coreImpl) Leave(conn pierce.SocketConnection) {
 
 // toEtcdKey converts room + key to etcd key
 func (r *coreImpl) toEtcdKey(room, key string) string {
+	roomHash := fmt.Sprintf("%x", md5.Sum([]byte(room)))
+	roomKey := fmt.Sprintf("%s/%s/%s/%s", r.keyPrefix, roomHash[0:2], roomHash[2:4], room)
+
 	if key == "" {
-		return fmt.Sprintf("%s/%s", r.keyPrefix, room)
+		return roomKey
 	}
-	return fmt.Sprintf("%s/%s/%s", r.keyPrefix, room, key)
+	return fmt.Sprintf("%s/%s", roomKey, key)
 }
 
 func (r *coreImpl) mainLoop() {

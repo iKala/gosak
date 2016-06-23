@@ -72,12 +72,12 @@ func (s *coreTestSuite) TestGet() {
 	resp := &client.Response{
 		Action: "get",
 		Node: &client.Node{
-			Key:   "/pierce/aaa/bbb",
+			Key:   "/pierce/47/bc/aaa/bbb",
 			Dir:   false,
 			Value: "1234",
 		},
 	}
-	s.etcdMock.On("Get", "/pierce/aaa/bbb", true).Return(resp, nil).Once()
+	s.etcdMock.On("Get", "/pierce/47/bc/aaa/bbb", true).Return(resp, nil).Once()
 
 	v, err := s.impl.Get("aaa", "bbb")
 	s.NoError(err)
@@ -89,12 +89,12 @@ func (s *coreTestSuite) TestGetAll() {
 	resp := &client.Response{
 		Action: "get",
 		Node: &client.Node{
-			Key:   "/pierce/aaa",
+			Key:   "/pierce/47/bc/aaa",
 			Dir:   false,
 			Value: "1234",
 		},
 	}
-	s.etcdMock.On("Get", "/pierce/aaa", true).Return(resp, nil).Once()
+	s.etcdMock.On("Get", "/pierce/47/bc/aaa", true).Return(resp, nil).Once()
 
 	v, err := s.impl.GetAll("aaa")
 	s.NoError(err)
@@ -103,8 +103,8 @@ func (s *coreTestSuite) TestGetAll() {
 }
 
 func (s *coreTestSuite) TestSet() {
-	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, nil).Once()
-	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, nil).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/47/bc/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
 	s.etcdMock.On("IsNotFound", error(nil)).Return(false).Once()
 
 	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
@@ -114,9 +114,9 @@ func (s *coreTestSuite) TestSet() {
 
 func (s *coreTestSuite) TestSetFirstTime() {
 	someErr := fmt.Errorf("some err")
-	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
-	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, nil).Once()
-	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, nil).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/47/bc/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
 	s.etcdMock.On("IsNotFound", someErr).Return(true).Once()
 
 	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
@@ -126,7 +126,7 @@ func (s *coreTestSuite) TestSetFirstTime() {
 
 func (s *coreTestSuite) TestSetError() {
 	someErr := fmt.Errorf("some err")
-	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, someErr).Once()
 	s.etcdMock.On("IsNotFound", someErr).Return(false).Once()
 
 	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
@@ -136,8 +136,8 @@ func (s *coreTestSuite) TestSetError() {
 
 func (s *coreTestSuite) TestSetError2() {
 	someErr := fmt.Errorf("some err")
-	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, nil).Once()
-	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, someErr).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, nil).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/47/bc/aaa/bbb", "1234", time.Minute).Return(nil, someErr).Once()
 	s.etcdMock.On("IsNotFound", error(nil)).Return(false).Once()
 
 	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
@@ -147,9 +147,9 @@ func (s *coreTestSuite) TestSetError2() {
 
 func (s *coreTestSuite) TestSetError3() {
 	someErr := fmt.Errorf("some err")
-	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
-	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
-	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/47/bc/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
 	s.etcdMock.On("IsNotFound", someErr).Return(true).Once()
 
 	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
