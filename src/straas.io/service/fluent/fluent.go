@@ -22,9 +22,9 @@ func (s *service) Type() common.ServiceType {
 }
 
 func (s *service) AddFlags() {
-	flag.StringVar(&s.host, "common_fluent_host", "", "fluent host address")
-	flag.IntVar(&s.port, "common_fluent_port", 24224, "fluent port")
-	flag.BoolVar(&s.enable, "common_fluent_enable", false, "whether enable fluent")
+	flag.StringVar(&s.host, "common.fluent_host", "", "fluent host address")
+	flag.IntVar(&s.port, "common.fluent_port", 24224, "fluent port")
+	flag.BoolVar(&s.enable, "common.fluent_enable", false, "whether enable fluent")
 }
 
 func (s *service) New(common.ServiceGetter) (interface{}, error) {

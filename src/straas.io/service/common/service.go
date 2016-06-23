@@ -2,10 +2,16 @@ package common
 
 import (
 	"fmt"
+
+	"github.com/facebookgo/stats"
+
+	"straas.io/base/logger"
 )
 
-// define service types
+// define service types, pls list in alphabetical order
 const (
+	Controller     ServiceType = "ctrl"
+	Etcd           ServiceType = "etcd"
 	Fluent         ServiceType = "fluent"
 	MetricExporter ServiceType = "metric_exporter"
 )
@@ -13,8 +19,17 @@ const (
 // ServiceType define service type
 type ServiceType string
 
-// ServiceGetter defines a func type to get dependent service by type
-type ServiceGetter func(ServiceType) interface{}
+// ServiceGetter defines an interface to get dependent service by type
+type ServiceGetter interface {
+	// MustGet returns the serivce instance and panic if any error
+	MustGet(ServiceType) interface{}
+	// Get return the service instance
+	Get(ServiceType) (interface{}, error)
+	// Logger returns logger
+	Logger() logger.Logger
+	// metric returns metric
+	Metric() stats.Client
+}
 
 // Service defines an interface for common services
 type Service interface {
