@@ -129,7 +129,7 @@ func (m *managerImpl) build(t common.ServiceType) error {
 			return err
 		}
 	}
-	// create flags for the service
+	// create instance for the service
 	inst, err := s.New(m)
 	if err != nil {
 		return err
