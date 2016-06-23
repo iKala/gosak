@@ -11,6 +11,8 @@ import (
 
 const (
 	maintainInterval = 30 * time.Second
+	// room TTL is 3 days
+	roomTTL = 3 * 24 * time.Hour
 )
 
 var (
@@ -72,14 +74,31 @@ func (r *coreImpl) GetAll(roomID string) (interface{}, error) {
 	return r.Get(roomID, "")
 }
 
-func (r *coreImpl) Set(roomID, key string, v interface{}) error {
+func (r *coreImpl) Set(roomID, key string, v interface{}, ttl time.Duration) error {
 	value, err := marshaller(v)
 	if err != nil {
 		return err
 	}
+
+	roomKey := r.toEtcdKey(roomID, "")
 	etcdKey := r.toEtcdKey(roomID, key)
-	_, err = r.etcdAPI.Set(etcdKey, value)
-	return err
+
+	// fresh room dir ttl first in case server crash after key updated immediately
+	_, err = r.etcdAPI.RefreshTTL(roomKey, roomTTL)
+	first := r.etcdAPI.IsNotFound(err)
+	if err != nil && !first {
+		return err
+	}
+	// update value with TTL
+	if _, err = r.etcdAPI.SetWithTTL(etcdKey, value, ttl); err != nil {
+		return err
+	}
+	// set room key TTL for newly created dir
+	if first {
+		_, err = r.etcdAPI.RefreshTTL(roomKey, roomTTL)
+		return err
+	}
+	return nil
 }
 
 func (r *coreImpl) Join(conn pierce.SocketConnection) {

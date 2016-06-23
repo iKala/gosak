@@ -1,5 +1,9 @@
 package pierce
 
+import (
+	"time"
+)
+
 // Core defines an interface Pierce core operations
 type Core interface {
 	// Start starts pierce core
@@ -11,7 +15,7 @@ type Core interface {
 	// Get gets all data of the give room
 	GetAll(roomID string) (interface{}, error)
 	// Set sets data of the given room and key
-	Set(roomID, key string, value interface{}) error
+	Set(roomID, key string, value interface{}, ttl time.Duration) error
 	// Join adds socket connections
 	Join(SocketConnection)
 	// Leave removes socket connection

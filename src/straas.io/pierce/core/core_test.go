@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -102,10 +103,57 @@ func (s *coreTestSuite) TestGetAll() {
 }
 
 func (s *coreTestSuite) TestSet() {
-	s.etcdMock.On("Set", "/pierce/aaa/bbb", "1234").Return(nil, nil).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, nil).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
+	s.etcdMock.On("IsNotFound", error(nil)).Return(false).Once()
 
-	err := s.impl.Set("aaa", "bbb", 1234)
+	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
 	s.NoError(err)
+	s.etcdMock.AssertExpectations(s.T())
+}
+
+func (s *coreTestSuite) TestSetFirstTime() {
+	someErr := fmt.Errorf("some err")
+	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, nil).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
+	s.etcdMock.On("IsNotFound", someErr).Return(true).Once()
+
+	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
+	s.NoError(err)
+	s.etcdMock.AssertExpectations(s.T())
+}
+
+func (s *coreTestSuite) TestSetError() {
+	someErr := fmt.Errorf("some err")
+	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("IsNotFound", someErr).Return(false).Once()
+
+	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
+	s.Error(err)
+	s.etcdMock.AssertExpectations(s.T())
+}
+
+func (s *coreTestSuite) TestSetError2() {
+	someErr := fmt.Errorf("some err")
+	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, nil).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, someErr).Once()
+	s.etcdMock.On("IsNotFound", error(nil)).Return(false).Once()
+
+	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
+	s.Error(err)
+	s.etcdMock.AssertExpectations(s.T())
+}
+
+func (s *coreTestSuite) TestSetError3() {
+	someErr := fmt.Errorf("some err")
+	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("SetWithTTL", "/pierce/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
+	s.etcdMock.On("IsNotFound", someErr).Return(true).Once()
+
+	err := s.impl.Set("aaa", "bbb", 1234, time.Minute)
+	s.Error(err)
 	s.etcdMock.AssertExpectations(s.T())
 }
 
