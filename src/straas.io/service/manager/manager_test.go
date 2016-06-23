@@ -10,6 +10,10 @@ import (
 	"straas.io/service/common"
 )
 
+const (
+	module = "test-module"
+)
+
 func TestManager(t *testing.T) {
 	suite.Run(t, new(ManangerTestSuite))
 }
@@ -26,7 +30,7 @@ func (s *ManangerTestSuite) SetupTest() {
 
 func (s *ManangerTestSuite) TestEmptyManager() {
 	s.Assert().Panics(func() {
-		newMgr(s.services, nil)
+		newMgr(s.services, module, nil)
 	})
 }
 
@@ -39,7 +43,7 @@ func (s *ManangerTestSuite) TestInitError() {
 
 	s.services["s1"] = s1
 
-	m := newMgr(s.services, []common.ServiceType{"s1"})
+	m := newMgr(s.services, module, []common.ServiceType{"s1"})
 	s.Error(m.Init())
 	// second init
 	s.Assert().Panics(func() {
@@ -80,10 +84,10 @@ func (s *ManangerTestSuite) TestManager() {
 	s.services["s2"] = s2
 	s.services["s3"] = s3
 
-	m = newMgr(s.services, []common.ServiceType{"s1"}).(*managerImpl)
+	m = newMgr(s.services, module, []common.ServiceType{"s1"}).(*managerImpl)
 	s.Assert().Panics(func() {
 		// no-existed service
-		newMgr(s.services, []common.ServiceType{"s4"})
+		newMgr(s.services, module, []common.ServiceType{"s4"})
 	})
 
 	_, err := m.Get("s1")

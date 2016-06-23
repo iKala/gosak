@@ -3,8 +3,7 @@ package metric
 import (
 	"flag"
 
-	"straas.io/base/metric"
-	"straas.io/external"
+	"straas.io/base/ctrl"
 	"straas.io/service/common"
 )
 
@@ -13,25 +12,23 @@ func init() {
 }
 
 type service struct {
-	tag string
+	port int
 }
 
 func (s *service) Type() common.ServiceType {
-	return common.MetricExporter
+	return common.Controller
 }
 
 func (s *service) AddFlags() {
-	flag.StringVar(&s.tag, "common.metric_tag", "metric", "metric fluent tag")
+	flag.IntVar(&s.port, "common.ctrl_port", 8000, "controller port")
 }
 
 func (s *service) New(get common.ServiceGetter) (interface{}, error) {
-	fluent := get.MustGet(common.Fluent).(external.Fluent)
-
-	done := make(chan bool)
-	metric.StartExport(fluent, s.tag, done)
-	return done, nil
+	return func() error {
+		return ctrl.RunController(s.port)
+	}, nil
 }
 
 func (s *service) Dependencies() []common.ServiceType {
-	return []common.ServiceType{common.Fluent}
+	return nil
 }

@@ -4,25 +4,36 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/facebookgo/stats"
+
+	"straas.io/base/logger"
+	"straas.io/base/metric"
 	"straas.io/service/common"
 	// services
+	_ "straas.io/service/controller"
+	_ "straas.io/service/etcd"
 	_ "straas.io/service/fluent"
 	_ "straas.io/service/metric"
 )
 
+var (
+	log = logger.Get()
+)
+
 // New creates an instance of manager
-func New(types ...common.ServiceType) Manager {
-	return newMgr(common.Services(), types)
+func New(moduleName string, types ...common.ServiceType) Manager {
+	return newMgr(common.Services(), moduleName, types)
 }
 
 func newMgr(services map[common.ServiceType]common.Service,
-	types []common.ServiceType) Manager {
+	moduleName string, types []common.ServiceType) Manager {
 	if len(types) == 0 {
 		panic(fmt.Errorf("no service types"))
 	}
 	m := &managerImpl{
 		services:  services,
 		types:     types,
+		stat:      metric.New(moduleName),
 		instances: map[common.ServiceType]interface{}{},
 	}
 	// add flags
@@ -33,18 +44,16 @@ func newMgr(services map[common.ServiceType]common.Service,
 
 // Manager defines an interface for service manager
 type Manager interface {
+	common.ServiceGetter
 	// Init creates serivce instances according to flag and dependencies
 	Init() error
-	// MustGet returns the serivce instance and panic if any error
-	MustGet(common.ServiceType) interface{}
-	// Get return the service instance
-	Get(common.ServiceType) (interface{}, error)
 }
 
 // some implementation throws panic bcz user misuses this manager
 type managerImpl struct {
 	inited    bool
 	types     []common.ServiceType
+	stat      stats.Client
 	instances map[common.ServiceType]interface{}
 	services  map[common.ServiceType]common.Service
 }
@@ -65,6 +74,14 @@ func (m *managerImpl) Init() error {
 		}
 	}
 	return nil
+}
+
+func (m *managerImpl) Logger() logger.Logger {
+	return log
+}
+
+func (m *managerImpl) Metric() stats.Client {
+	return m.stat
 }
 
 func (m *managerImpl) MustGet(t common.ServiceType) interface{} {
@@ -113,7 +130,7 @@ func (m *managerImpl) build(t common.ServiceType) error {
 		}
 	}
 	// create flags for the service
-	inst, err := s.New(m.MustGet)
+	inst, err := s.New(m)
 	if err != nil {
 		return err
 	}
