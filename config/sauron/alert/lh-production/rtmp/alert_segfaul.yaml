@@ -1,7 +1,6 @@
 interval: 1m
 script: |
   v = mquery("rtmp", "rtmp.segfault", "value", "sum", "2m", "1m")
-  console.log(v)
   alert(
     "segfault",
     notify("backend-transcode"),
