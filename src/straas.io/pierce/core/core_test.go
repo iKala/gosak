@@ -147,8 +147,7 @@ func (s *coreTestSuite) TestSetError2() {
 
 func (s *coreTestSuite) TestSetError3() {
 	someErr := fmt.Errorf("some err")
-	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, someErr).Once()
-	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, someErr).Once()
+	s.etcdMock.On("RefreshTTL", "/pierce/47/bc/aaa", roomTTL).Return(nil, someErr).Twice()
 	s.etcdMock.On("SetWithTTL", "/pierce/47/bc/aaa/bbb", "1234", time.Minute).Return(nil, nil).Once()
 	s.etcdMock.On("IsNotFound", someErr).Return(true).Once()
 
