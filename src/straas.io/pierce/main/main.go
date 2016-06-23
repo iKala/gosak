@@ -50,7 +50,8 @@ func main() {
 	}()
 
 	// create core
-	coreMgr := core.NewCore(etcdAPI, "/pierce")
+	coreRoot := fmt.Sprintf(`/%s/pierce`, *env)
+	coreMgr := core.NewCore(etcdAPI, coreRoot)
 	coreMgr.Start()
 
 	// create socket handler
