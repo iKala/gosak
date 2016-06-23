@@ -1,7 +1,7 @@
 // pls npm i socket.io-client
 var socketio = require('socket.io-client');
 
-var socketUrl = "http://localhost:11300/socket";
+var socketUrl = "http://localhost:11300/socket.io";
 var log = console.log;
 
 // connect to bonjour to receive task script2
