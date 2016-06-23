@@ -55,12 +55,12 @@ function run_test {
 function push_docker {
   PROJECT_ID=$1
   IMAGE_PATH=gcr.io/${PROJECT_ID}/${IMG_TAG}
-  safe_exec docker tag --force ${IMG_TAG} ${IMAGE_PATH}
+  safe_exec docker tag ${IMG_TAG} ${IMAGE_PATH}
   safe_exec gcloud docker --project ${PROJECT_ID} push ${IMAGE_PATH}
   safe_exec docker rmi ${IMAGE_PATH}
 
   IMAGE_PATH=gcr.io/${PROJECT_ID}/${IMG_LATEST}
-  safe_exec docker tag --force ${IMG_TAG} ${IMAGE_PATH}
+  safe_exec docker tag ${IMG_TAG} ${IMAGE_PATH}
   safe_exec gcloud docker --project ${PROJECT_ID} push ${IMAGE_PATH}
   safe_exec docker rmi ${IMAGE_PATH}  
 }
