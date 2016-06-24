@@ -12,8 +12,16 @@ import (
 )
 
 const (
-	testRoomID  = "test-room-id"
-	testEtcdKey = "/pierce/test-etcd-key"
+	testNamespace = "test-ns"
+	testRoomID    = "test-room-id"
+	testEtcdKey   = "/pierce/test-etcd-key"
+)
+
+var (
+	testRoomMeta = pierce.RoomMeta{
+		Namespace: testNamespace,
+		ID:        testRoomID,
+	}
 )
 
 func TestRoom(t *testing.T) {
@@ -28,7 +36,7 @@ type roomTestSuite struct {
 
 func (s *roomTestSuite) SetupTest() {
 	s.etcdMock = &etcdMocks.Etcd{}
-	s.impl = newRoom(testRoomID, testEtcdKey, s.etcdMock).(*roomImpl)
+	s.impl = newRoom(testRoomMeta, testEtcdKey, s.etcdMock).(*roomImpl)
 
 }
 
@@ -44,7 +52,7 @@ func (s *roomTestSuite) TestJoin() {
 	c3.On("ID").Return("conn3")
 
 	// only c3 got emit
-	c3.On("Emit", testRoomID, "xxx", uint64(10)).Return().Once()
+	c3.On("Emit", testRoomMeta, "xxx", uint64(10)).Return().Once()
 
 	s.impl.Join(c1)
 	s.impl.Join(c2)
@@ -52,7 +60,7 @@ func (s *roomTestSuite) TestJoin() {
 	s.impl.loopOnce(wch)
 	s.Equal(len(s.impl.conns), 2)
 
-	s.impl.dataStr = "xxx"
+	s.impl.data = "xxx"
 	s.impl.version = 10
 
 	s.impl.Join(c3)
@@ -192,7 +200,6 @@ func (s *roomTestSuite) TestApplyChange() {
 	s.Equal(s.impl.data, map[string]interface{}{
 		"aaa": float64(1234),
 	})
-	s.Equal(s.impl.dataStr, `{"aaa":1234}`)
 	s.Equal(s.impl.version, uint64(102))
 
 	// test set
@@ -238,14 +245,14 @@ func (s *roomTestSuite) TestBroadcast() {
 	c2 := &mocks.SocketConnection{}
 
 	// for logs
-	c1.On("Emit", testRoomID, "1234", uint64(101)).Return().Once()
-	c2.On("Emit", testRoomID, "1234", uint64(101)).Return().Once()
+	c1.On("Emit", testRoomMeta, "1234", uint64(101)).Return().Once()
+	c2.On("Emit", testRoomMeta, "1234", uint64(101)).Return().Once()
 
 	s.impl.connJoined = map[pierce.SocketConnection]bool{
 		c1: true,
 		c2: true,
 	}
-	s.impl.data = 1234
+	s.impl.data = "1234"
 	s.impl.version = 101
 	s.impl.broadcast()
 

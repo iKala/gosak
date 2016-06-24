@@ -1,6 +1,7 @@
 package etcd
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -136,6 +137,7 @@ func (a *etcdImpl) getAndWatch(etcdKey string, done <-chan bool, fin chan<- bool
 
 func (a *etcdImpl) Get(etcdKey string, recursive bool) (*client.Response, error) {
 	a.stat.BumpSum("etcd.get", 1)
+	defer a.stat.BumpTime("etcd.get.proc_time").End()
 
 	opt := &client.GetOptions{
 		Recursive: recursive,
@@ -158,11 +160,21 @@ func (a *etcdImpl) Get(etcdKey string, recursive bool) (*client.Response, error)
 }
 
 func (a *etcdImpl) Set(etcdKey, value string) (*client.Response, error) {
+	return a.SetWithTTL(etcdKey, value, 0)
+}
+
+func (a *etcdImpl) SetWithTTL(etcdKey, value string, ttl time.Duration) (*client.Response, error) {
 	a.stat.BumpSum("etcd.set", 1)
+	defer a.stat.BumpTime("etcd.set.proc_time").End()
 
 	opt := &client.SetOptions{}
 	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
 	defer cancel()
+
+	// give ttl if not zero
+	if ttl > 0 {
+		opt.TTL = ttl
+	}
 
 	resp, err := a.api.Set(ctx, etcdKey, value, opt)
 	if err != nil {
@@ -170,6 +182,34 @@ func (a *etcdImpl) Set(etcdKey, value string) (*client.Response, error) {
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (a *etcdImpl) RefreshTTL(etcdKey string, ttl time.Duration) (*client.Response, error) {
+	a.stat.BumpSum("etcd.refresh", 1)
+	defer a.stat.BumpTime("etcd.refresh.proc_time").End()
+
+	if ttl == 0 {
+		return nil, fmt.Errorf("refresh etcd key %s with zero ttl", etcdKey)
+	}
+
+	opt := &client.SetOptions{
+		Refresh:   true,
+		PrevExist: client.PrevExist,
+		TTL:       ttl,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
+	defer cancel()
+
+	resp, err := a.api.Set(ctx, etcdKey, "", opt)
+	if err != nil {
+		a.stat.BumpSum("etcd.refresh.err", 1)
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (a *etcdImpl) IsNotFound(err error) bool {
+	return client.IsKeyNotFound(err)
 }
 
 // getWatcher returns watcher with the given key and index

@@ -24,11 +24,11 @@ type Room interface {
 	Empty() bool
 }
 
-func newRoom(id, etcdKey string, etcdAPI external.Etcd) Room {
+func newRoom(roomMeta pierce.RoomMeta, etcdKey string, etcdAPI external.Etcd) Room {
 	log.Debugf("create room with key %s", etcdKey)
 
 	return &roomImpl{
-		id:         id,
+		roomMeta:   roomMeta,
 		conns:      map[pierce.SocketConnection]bool{},
 		connJoined: map[pierce.SocketConnection]bool{},
 
@@ -41,8 +41,8 @@ func newRoom(id, etcdKey string, etcdAPI external.Etcd) Room {
 }
 
 type roomImpl struct {
-	// room id
-	id string
+	// room meta
+	roomMeta pierce.RoomMeta
 	// all pierce.SocketConnections in this room
 	connJoined map[pierce.SocketConnection]bool
 	// keep track real pierce.SocketConnection count (some might still in the channel)
@@ -55,7 +55,6 @@ type roomImpl struct {
 
 	etcdKey string
 	data    interface{}
-	dataStr string // cache data to avoid redundant marshalling
 	version uint64
 }
 
@@ -72,24 +71,24 @@ func (r *roomImpl) Empty() bool {
 }
 
 func (r *roomImpl) Join(conn pierce.SocketConnection) {
-	log.Infof("connection %s join %s", conn.ID(), r.id)
+	log.Infof("connection %s join %v", conn.ID(), r.roomMeta)
 	r.conns[conn] = true
 	r.chJoin <- conn
 }
 
 func (r *roomImpl) Leave(conn pierce.SocketConnection) {
-	log.Infof("connection %s leave %s", conn.ID(), r.id)
+	log.Infof("connection %s leave %v", conn.ID(), r.roomMeta)
 	delete(r.conns, conn)
 	r.chLeave <- conn
 }
 
 func (r *roomImpl) join(conn pierce.SocketConnection) {
 	r.connJoined[conn] = true
-	log.Infof("there %d conns in room %s", len(r.connJoined), r.id)
+	log.Infof("there %d conns in room %v", len(r.connJoined), r.roomMeta)
 
 	// send if has data
 	if r.version > 0 {
-		conn.Emit(r.id, r.dataStr, r.version)
+		conn.Emit(r.roomMeta, r.data, r.version)
 	}
 }
 
@@ -177,11 +176,9 @@ func (r *roomImpl) applyChange(resp *client.Response) error {
 }
 
 func (r *roomImpl) broadcast() {
-	r.dataStr, _ = marshaller(r.data)
-
 	// TODO: aggregates changes in case update too frequently
 	// TODO: check previous value
 	for conn := range r.connJoined {
-		conn.Emit(r.id, r.dataStr, r.version)
+		conn.Emit(r.roomMeta, r.data, r.version)
 	}
 }

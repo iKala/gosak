@@ -3,6 +3,7 @@ package etcd
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/coreos/etcd/client"
 	"github.com/stretchr/testify/assert"
@@ -117,6 +118,52 @@ func (s *etcdTestSuite) TestSet() {
 
 	s.keyAPI.On("Set", mock.Anything, testKey, testValue, opt).Return(testResp, nil).Once()
 	resp, err := s.impl.Set(testKey, testValue)
+	s.NoError(err)
+	s.Equal(resp, testResp)
+	s.keyAPI.AssertExpectations(s.T())
+}
+
+func (s *etcdTestSuite) TestSetWithTTL() {
+	ttl := time.Minute
+	opt := &client.SetOptions{
+		TTL: ttl,
+	}
+	testResp := &client.Response{
+		Action: "set",
+		Node: &client.Node{
+			Dir:   false,
+			Key:   testKey,
+			Value: testValue,
+			TTL:   int64(ttl / time.Second),
+		},
+	}
+
+	s.keyAPI.On("Set", mock.Anything, testKey, testValue, opt).Return(testResp, nil).Once()
+	resp, err := s.impl.SetWithTTL(testKey, testValue, ttl)
+	s.NoError(err)
+	s.Equal(resp, testResp)
+	s.keyAPI.AssertExpectations(s.T())
+}
+
+func (s *etcdTestSuite) TestRefresh() {
+	ttl := time.Minute
+	opt := &client.SetOptions{
+		TTL:       ttl,
+		Refresh:   true,
+		PrevExist: client.PrevExist,
+	}
+	testResp := &client.Response{
+		Action: "set",
+		Node: &client.Node{
+			Dir:   false,
+			Key:   testKey,
+			Value: testValue,
+			TTL:   int64(ttl / time.Second),
+		},
+	}
+
+	s.keyAPI.On("Set", mock.Anything, testKey, "", opt).Return(testResp, nil).Once()
+	resp, err := s.impl.RefreshTTL(testKey, ttl)
 	s.NoError(err)
 	s.Equal(resp, testResp)
 	s.keyAPI.AssertExpectations(s.T())

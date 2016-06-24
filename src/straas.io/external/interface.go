@@ -52,4 +52,10 @@ type Etcd interface {
 	Get(etcdKey string, recursive bool) (*client.Response, error)
 	// Set sets the value to etcd
 	Set(etcdKey, value string) (*client.Response, error)
+	// Set sets the value to etcd with TTL
+	SetWithTTL(etcdKey, value string, ttl time.Duration) (*client.Response, error)
+	// RefreshTTL refreshes ttl
+	RefreshTTL(etcdKey string, ttl time.Duration) (*client.Response, error)
+	// IsNotFound checks if err is not found error
+	IsNotFound(err error) bool
 }

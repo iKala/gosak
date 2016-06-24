@@ -75,5 +75,3 @@ func main() {
 	}
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
-
-//./main -pierce.env=test -common.etcd_urls="http://192.168.1.57:2379"

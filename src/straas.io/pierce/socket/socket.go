@@ -48,7 +48,16 @@ func (s *Server) Create() (http.Handler, error) {
 		var err error
 
 		err = so.On("join", func(msg string) {
-			conn = NewConn(so, []string{"aaa", "bbb"})
+			conn = NewConn(so, []pierce.RoomMeta{
+				pierce.RoomMeta{
+					Namespace: "xxx",
+					ID:        "aaa",
+				},
+				pierce.RoomMeta{
+					Namespace: "xxx",
+					ID:        "bbb",
+				},
+			})
 			coreMgr.Join(conn)
 		})
 		if err != nil {
