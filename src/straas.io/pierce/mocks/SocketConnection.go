@@ -9,7 +9,7 @@ type SocketConnection struct {
 }
 
 // Emit provides a mock function with given fields: room, data, version
-func (_m *SocketConnection) Emit(room pierce.RoomMeta, data string, version uint64) {
+func (_m *SocketConnection) Emit(room pierce.RoomMeta, data interface{}, version uint64) {
 	_m.Called(room, data, version)
 }
 

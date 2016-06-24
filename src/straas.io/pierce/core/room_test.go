@@ -60,7 +60,7 @@ func (s *roomTestSuite) TestJoin() {
 	s.impl.loopOnce(wch)
 	s.Equal(len(s.impl.conns), 2)
 
-	s.impl.dataStr = "xxx"
+	s.impl.data = "xxx"
 	s.impl.version = 10
 
 	s.impl.Join(c3)
@@ -200,7 +200,6 @@ func (s *roomTestSuite) TestApplyChange() {
 	s.Equal(s.impl.data, map[string]interface{}{
 		"aaa": float64(1234),
 	})
-	s.Equal(s.impl.dataStr, `{"aaa":1234}`)
 	s.Equal(s.impl.version, uint64(102))
 
 	// test set
@@ -253,7 +252,7 @@ func (s *roomTestSuite) TestBroadcast() {
 		c1: true,
 		c2: true,
 	}
-	s.impl.data = 1234
+	s.impl.data = "1234"
 	s.impl.version = 101
 	s.impl.broadcast()
 

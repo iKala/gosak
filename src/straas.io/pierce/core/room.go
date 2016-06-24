@@ -55,7 +55,6 @@ type roomImpl struct {
 
 	etcdKey string
 	data    interface{}
-	dataStr string // cache data to avoid redundant marshalling
 	version uint64
 }
 
@@ -89,7 +88,7 @@ func (r *roomImpl) join(conn pierce.SocketConnection) {
 
 	// send if has data
 	if r.version > 0 {
-		conn.Emit(r.roomMeta, r.dataStr, r.version)
+		conn.Emit(r.roomMeta, r.data, r.version)
 	}
 }
 
@@ -177,11 +176,9 @@ func (r *roomImpl) applyChange(resp *client.Response) error {
 }
 
 func (r *roomImpl) broadcast() {
-	r.dataStr, _ = marshaller(r.data)
-
 	// TODO: aggregates changes in case update too frequently
 	// TODO: check previous value
 	for conn := range r.connJoined {
-		conn.Emit(r.roomMeta, r.dataStr, r.version)
+		conn.Emit(r.roomMeta, r.data, r.version)
 	}
 }

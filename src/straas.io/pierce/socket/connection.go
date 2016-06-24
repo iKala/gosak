@@ -29,7 +29,7 @@ func (c *connImpl) Rooms() []pierce.RoomMeta {
 	return c.roomMetas
 }
 
-func (c *connImpl) Emit(roomMeta pierce.RoomMeta, data string, version uint64) {
+func (c *connImpl) Emit(roomMeta pierce.RoomMeta, data interface{}, version uint64) {
 	// skip old data
 	if version <= c.versions[roomMeta] {
 		return

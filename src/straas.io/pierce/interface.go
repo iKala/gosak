@@ -40,7 +40,7 @@ type SocketConnection interface {
 	// Rooms returns belonged roooms of the connection
 	Rooms() []RoomMeta
 	// Emit sends data to connection
-	Emit(room RoomMeta, data string, version uint64)
+	Emit(room RoomMeta, data interface{}, version uint64)
 	// ID returns connection id
 	ID() string
 }
