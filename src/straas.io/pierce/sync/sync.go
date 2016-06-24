@@ -47,7 +47,7 @@ func (s *syncer) Start() {
 	for _, q := range s.queues {
 		go s.syncLoop(q)
 	}
-	go s.watcher()
+	go s.watch()
 }
 
 func (s *syncer) Stop() {
@@ -87,7 +87,7 @@ func (s *syncer) doSync(etcdKey string, compare bool) error {
 	// toKey ?!
 	var roomMeta pierce.RoomMeta
 
-	data, err := s.coreMgr.GetAll(roomMeta)
+	data, version, err := s.coreMgr.GetAll(roomMeta)
 	if err != nil {
 		// WTD ?!
 		return err
@@ -95,7 +95,7 @@ func (s *syncer) doSync(etcdKey string, compare bool) error {
 
 	// how to know it's newer or older changes ?!
 	// sinker
-	if err := s.sinker(roomMeta, data, 0); err != nil {
+	if err := s.sinker(roomMeta, data, version); err != nil {
 		return err
 	}
 	return nil
