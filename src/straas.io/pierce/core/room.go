@@ -64,6 +64,8 @@ func (r *roomImpl) Start() {
 
 func (r *roomImpl) Stop() {
 	close(r.chDone)
+	close(r.chJoin)
+	close(r.chLeave)
 }
 
 func (r *roomImpl) Empty() bool {
@@ -98,7 +100,11 @@ func (r *roomImpl) leave(conn pierce.SocketConnection) {
 }
 
 func (r *roomImpl) mainLoop() {
-	wch := r.etcdAPI.GetAndWatch(r.etcdKey, r.chDone)
+	wch := make(chan *client.Response, 10)
+	go func() {
+		r.etcdAPI.GetAndWatch(r.etcdKey, wch, r.chDone)
+		close(wch)
+	}()
 	for r.loopOnce(wch) {
 	}
 }
@@ -118,6 +124,7 @@ func (r *roomImpl) loopOnce(wch <-chan *client.Response) bool {
 		// apply change does not involve any IO operation
 		// it should be no error
 		if err := r.applyChange(resp); err != nil {
+			// TODO: put metric here
 			log.Errorf("fail to apply resp %+v, err:%v", resp, err)
 			// WTD
 			return true
@@ -168,9 +175,8 @@ func (r *roomImpl) applyChange(resp *client.Response) error {
 		}
 
 	default:
-		return fmt.Errorf("unknown action %s", resp.Action)
 		// should not reach here
-		// TODO: keep log and metrics
+		return fmt.Errorf("unknown action %s", resp.Action)
 	}
 	return nil
 }
