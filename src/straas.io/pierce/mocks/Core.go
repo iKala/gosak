@@ -11,7 +11,7 @@ type Core struct {
 }
 
 // Get provides a mock function with given fields: room, key
-func (_m *Core) Get(room pierce.RoomMeta, key string) (interface{}, error) {
+func (_m *Core) Get(room pierce.RoomMeta, key string) (interface{}, uint64, error) {
 	ret := _m.Called(room, key)
 
 	var r0 interface{}
@@ -23,18 +23,25 @@ func (_m *Core) Get(room pierce.RoomMeta, key string) (interface{}, error) {
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(pierce.RoomMeta, string) error); ok {
+	var r1 uint64
+	if rf, ok := ret.Get(1).(func(pierce.RoomMeta, string) uint64); ok {
 		r1 = rf(room, key)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(uint64)
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(pierce.RoomMeta, string) error); ok {
+		r2 = rf(room, key)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // GetAll provides a mock function with given fields: room
-func (_m *Core) GetAll(room pierce.RoomMeta) (interface{}, error) {
+func (_m *Core) GetAll(room pierce.RoomMeta) (interface{}, uint64, error) {
 	ret := _m.Called(room)
 
 	var r0 interface{}
@@ -46,14 +53,21 @@ func (_m *Core) GetAll(room pierce.RoomMeta) (interface{}, error) {
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(pierce.RoomMeta) error); ok {
+	var r1 uint64
+	if rf, ok := ret.Get(1).(func(pierce.RoomMeta) uint64); ok {
 		r1 = rf(room)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(uint64)
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(pierce.RoomMeta) error); ok {
+		r2 = rf(room)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // Join provides a mock function with given fields: _a0

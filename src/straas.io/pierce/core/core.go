@@ -61,17 +61,16 @@ func (r *coreImpl) Stop() {
 	close(r.chDone)
 }
 
-func (r *coreImpl) Get(roomMeta pierce.RoomMeta, key string) (interface{}, error) {
+func (r *coreImpl) Get(roomMeta pierce.RoomMeta, key string) (interface{}, uint64, error) {
 	etcdKey := r.toEtcdKey(roomMeta, key)
 	resp, err := r.etcdAPI.Get(etcdKey, true)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	v, _, err := toValue(resp.Node, unmarshaller)
-	return v, err
+	return toValue(resp.Node, unmarshaller)
 }
 
-func (r *coreImpl) GetAll(roomMeta pierce.RoomMeta) (interface{}, error) {
+func (r *coreImpl) GetAll(roomMeta pierce.RoomMeta) (interface{}, uint64, error) {
 	return r.Get(roomMeta, "")
 }
 

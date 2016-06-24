@@ -12,9 +12,9 @@ type Core interface {
 	// Stop stops pierce core
 	Stop()
 	// Get gets data of the give room and key
-	Get(room RoomMeta, key string) (interface{}, error)
+	Get(room RoomMeta, key string) (interface{}, uint64, error)
 	// Get gets all data of the give room
-	GetAll(room RoomMeta) (interface{}, error)
+	GetAll(room RoomMeta) (interface{}, uint64, error)
 	// Set sets data of the given room and key
 	Set(room RoomMeta, key string, value interface{}, ttl time.Duration) error
 	// Join adds socket connections
