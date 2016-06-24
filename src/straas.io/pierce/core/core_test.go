@@ -87,16 +87,18 @@ func (s *coreTestSuite) TestGet() {
 	resp := &client.Response{
 		Action: "get",
 		Node: &client.Node{
-			Key:   "/pierce/xxx/47/bc/aaa/bbb",
-			Dir:   false,
-			Value: "1234",
+			Key:           "/pierce/xxx/47/bc/aaa/bbb",
+			Dir:           false,
+			Value:         "1234",
+			ModifiedIndex: 464,
 		},
 	}
 	s.etcdMock.On("Get", "/pierce/xxx/47/bc/aaa/bbb", true).Return(resp, nil).Once()
 
-	v, err := s.impl.Get(troom1, "bbb")
+	v, version, err := s.impl.Get(troom1, "bbb")
 	s.NoError(err)
 	s.Equal(v, float64(1234))
+	s.Equal(version, uint64(464))
 	s.etcdMock.AssertExpectations(s.T())
 }
 
@@ -104,16 +106,18 @@ func (s *coreTestSuite) TestGetAll() {
 	resp := &client.Response{
 		Action: "get",
 		Node: &client.Node{
-			Key:   "/pierce/xxx/47/bc/aaa",
-			Dir:   false,
-			Value: "1234",
+			Key:           "/pierce/xxx/47/bc/aaa",
+			Dir:           false,
+			Value:         "1234",
+			ModifiedIndex: 373,
 		},
 	}
 	s.etcdMock.On("Get", "/pierce/xxx/47/bc/aaa", true).Return(resp, nil).Once()
 
-	v, err := s.impl.GetAll(troom1)
+	v, version, err := s.impl.GetAll(troom1)
 	s.NoError(err)
 	s.Equal(v, float64(1234))
+	s.Equal(version, uint64(373))
 	s.etcdMock.AssertExpectations(s.T())
 }
 
