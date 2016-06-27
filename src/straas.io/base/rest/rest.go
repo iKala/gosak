@@ -22,8 +22,13 @@ import (
 // MiddlewareFunc defines middleware for your restful API
 type MiddlewareFunc func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc)
 
+// Params is just a interface compatable with httprouter.Params
+type Params interface {
+	ByName(name string) string
+}
+
 // HandlerFunc handles http requests and returns Error on failure.
-type HandlerFunc func(rw http.ResponseWriter, req *http.Request) *Error
+type HandlerFunc func(rw http.ResponseWriter, req *http.Request, ps Params) *Error
 
 // Error is self defined error type
 type Error struct {
@@ -44,7 +49,7 @@ func New(log logger.Logger, stat stats.Client) Rest {
 
 // Rest is the abstract interface to build restful API
 // We will need to expand this interface if we need to use "Route Specific
-// Middleware" in negroni or "Named Parameters" in httprouter.
+// Middleware" in negroni
 type Rest interface {
 	// GetHandler returns a http.Handler that can be passed to http.ListenAndServe
 	GetHandler() http.Handler
@@ -73,11 +78,11 @@ func (r *restImpl) Use(fn MiddlewareFunc) {
 }
 
 func (r *restImpl) Route(method, path string, fn HandlerFunc) {
-	r.router.HandlerFunc(method, path, r.wrapper(method, path, fn))
+	r.router.Handle(method, path, r.wrapper(method, path, fn))
 	r.once.Do(func() { r.middleware.UseHandler(r.router) })
 }
 
-func (r *restImpl) wrapper(method, path string, fn HandlerFunc) http.HandlerFunc {
+func (r *restImpl) wrapper(method, path string, fn HandlerFunc) httprouter.Handle {
 	// prepare metric name prefix
 	// remove "/" at the begining of path
 	// replace "/" as "."
@@ -85,10 +90,10 @@ func (r *restImpl) wrapper(method, path string, fn HandlerFunc) http.HandlerFunc
 	path = strings.Replace(path, "/", ".", -1)
 	prefix := fmt.Sprintf("rest.%s.%s.", method, path)
 
-	return func(rw http.ResponseWriter, req *http.Request) {
+	return func(rw http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		defer r.stat.BumpTime(prefix + "proc_time").End()
 		r.stat.BumpSum(prefix+"request", 1)
-		if restErr := fn(rw, req); restErr != nil {
+		if restErr := fn(rw, req, ps); restErr != nil {
 			if restErr.Detail != "" {
 				r.log.Errorf("error detail: %s", restErr.Detail)
 			}
