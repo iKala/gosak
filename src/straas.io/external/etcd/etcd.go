@@ -5,10 +5,9 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
-	"github.com/facebookgo/stats"
 	"golang.org/x/net/context"
 
-	"straas.io/base/logger"
+	"straas.io/base/logmetric"
 	"straas.io/external"
 )
 
@@ -17,12 +16,11 @@ const (
 )
 
 // NewEtcd creates an instance of etcd
-func NewEtcd(c client.Client, timeout time.Duration, log logger.Logger, stat stats.Client) external.Etcd {
+func NewEtcd(c client.Client, timeout time.Duration, logm logmetric.LogMetric) external.Etcd {
 	return &etcdImpl{
 		api:     &keysImpl{api: client.NewKeysAPI(c)},
 		timeout: timeout,
-		stat:    stat,
-		log:     log,
+		logm:    logm,
 	}
 }
 
@@ -48,8 +46,7 @@ type watcher interface {
 }
 
 type etcdImpl struct {
-	log     logger.Logger
-	stat    stats.Client
+	logm    logmetric.LogMetric
 	api     keysAPI
 	timeout time.Duration
 }
@@ -74,8 +71,7 @@ func (a *etcdImpl) getAndWatch(etcdKey string, done <-chan bool, fin chan<- bool
 	}
 
 	ch := make(chan *client.Response, bufferSize)
-	log := a.log
-	stat := a.stat
+	logm := a.logm
 
 	go func() {
 		defer func() {
@@ -88,7 +84,7 @@ func (a *etcdImpl) getAndWatch(etcdKey string, done <-chan bool, fin chan<- bool
 
 			resp, err := a.Get(etcdKey, true)
 			if err != nil {
-				log.Errorf("fail to get value, err:%v", err)
+				logm.Errorf("fail to get value, err:%v", err)
 				// TODO: backoff
 				continue
 			}
@@ -117,13 +113,13 @@ func (a *etcdImpl) getAndWatch(etcdKey string, done <-chan bool, fin chan<- bool
 					cerr, ok := err.(*client.Error)
 					// index outdate, need to restart watch loop
 					if ok && cerr.Code == client.ErrorCodeEventIndexCleared {
-						stat.BumpSum("etcd.indexoutdated.err", 1)
+						logm.BumpSum("etcd.indexoutdated.err", 1)
 						break
 					}
 
 					// What to do ?
-					stat.BumpSum("etcd.watchnext.err", 1)
-					log.Errorf("fail to watch, err:%v", err)
+					logm.BumpSum("etcd.watchnext.err", 1)
+					logm.Errorf("fail to watch, err:%v", err)
 					// TODO: backoff if other error ?!
 					continue
 				}
@@ -136,8 +132,9 @@ func (a *etcdImpl) getAndWatch(etcdKey string, done <-chan bool, fin chan<- bool
 }
 
 func (a *etcdImpl) Get(etcdKey string, recursive bool) (*client.Response, error) {
-	a.stat.BumpSum("etcd.get", 1)
-	defer a.stat.BumpTime("etcd.get.proc_time").End()
+	logm := a.logm
+	logm.BumpSum("etcd.get", 1)
+	defer logm.BumpTime("etcd.get.proc_time").End()
 
 	opt := &client.GetOptions{
 		Recursive: recursive,
@@ -153,7 +150,7 @@ func (a *etcdImpl) Get(etcdKey string, recursive bool) (*client.Response, error)
 		return emptyDirResponse(etcdKey, cErr.Index), nil
 	}
 	if err != nil {
-		a.stat.BumpSum("etcd.get.err", 1)
+		logm.BumpSum("etcd.get.err", 1)
 		return nil, err
 	}
 	return resp, nil
@@ -164,8 +161,9 @@ func (a *etcdImpl) Set(etcdKey, value string) (*client.Response, error) {
 }
 
 func (a *etcdImpl) SetWithTTL(etcdKey, value string, ttl time.Duration) (*client.Response, error) {
-	a.stat.BumpSum("etcd.set", 1)
-	defer a.stat.BumpTime("etcd.set.proc_time").End()
+	logm := a.logm
+	logm.BumpSum("etcd.set", 1)
+	defer logm.BumpTime("etcd.set.proc_time").End()
 
 	opt := &client.SetOptions{}
 	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
@@ -178,15 +176,16 @@ func (a *etcdImpl) SetWithTTL(etcdKey, value string, ttl time.Duration) (*client
 
 	resp, err := a.api.Set(ctx, etcdKey, value, opt)
 	if err != nil {
-		a.stat.BumpSum("etcd.set.err", 1)
+		logm.BumpSum("etcd.set.err", 1)
 		return nil, err
 	}
 	return resp, nil
 }
 
 func (a *etcdImpl) RefreshTTL(etcdKey string, ttl time.Duration) (*client.Response, error) {
-	a.stat.BumpSum("etcd.refresh", 1)
-	defer a.stat.BumpTime("etcd.refresh.proc_time").End()
+	logm := a.logm
+	logm.BumpSum("etcd.refresh", 1)
+	defer logm.BumpTime("etcd.refresh.proc_time").End()
 
 	if ttl == 0 {
 		return nil, fmt.Errorf("refresh etcd key %s with zero ttl", etcdKey)
@@ -202,7 +201,7 @@ func (a *etcdImpl) RefreshTTL(etcdKey string, ttl time.Duration) (*client.Respon
 
 	resp, err := a.api.Set(ctx, etcdKey, "", opt)
 	if err != nil {
-		a.stat.BumpSum("etcd.refresh.err", 1)
+		logm.BumpSum("etcd.refresh.err", 1)
 		return nil, err
 	}
 	return resp, nil

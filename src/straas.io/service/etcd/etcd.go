@@ -55,7 +55,7 @@ func (s *service) New(get common.ServiceGetter) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return exetcd.NewEtcd(cli, timeout, get.Logger(), get.Metric()), nil
+	return exetcd.NewEtcd(cli, timeout, get.LogMetric()), nil
 }
 
 func (s *service) Dependencies() []common.ServiceType {

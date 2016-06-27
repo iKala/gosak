@@ -3,9 +3,7 @@ package common
 import (
 	"fmt"
 
-	"github.com/facebookgo/stats"
-
-	"straas.io/base/logger"
+	"straas.io/base/logmetric"
 )
 
 // define service types, pls list in alphabetical order
@@ -25,10 +23,8 @@ type ServiceGetter interface {
 	MustGet(ServiceType) interface{}
 	// Get return the service instance
 	Get(ServiceType) (interface{}, error)
-	// Logger returns logger
-	Logger() logger.Logger
-	// metric returns metric
-	Metric() stats.Client
+	// LogMetric returns logger and metric
+	LogMetric() logmetric.LogMetric
 }
 
 // Service defines an interface for common services

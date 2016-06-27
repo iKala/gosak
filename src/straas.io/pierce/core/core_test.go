@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	"straas.io/base/logmetric"
 	etcdMocks "straas.io/external/mocks"
 	"straas.io/pierce"
 	"straas.io/pierce/mocks"
@@ -80,7 +81,7 @@ type coreTestSuite struct {
 
 func (s *coreTestSuite) SetupTest() {
 	s.etcdMock = &etcdMocks.Etcd{}
-	s.impl = NewCore(s.etcdMock, "/pierce").(*coreImpl)
+	s.impl = NewCore(s.etcdMock, "/pierce", logmetric.NewDummy()).(*coreImpl)
 }
 
 func (s *coreTestSuite) TestGet() {

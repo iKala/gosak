@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"straas.io/base/logger"
+	"straas.io/base/logmetric"
 	"straas.io/external"
 	"straas.io/pierce"
 )
@@ -16,14 +16,10 @@ const (
 	roomTTL = 3 * 24 * time.Hour
 )
 
-var (
-	log = logger.Get()
-)
-
 // NewCore creates an instance of core manager
-func NewCore(etcdAPI external.Etcd, keyPrefix string) pierce.Core {
+func NewCore(etcdAPI external.Etcd, keyPrefix string, logm logmetric.LogMetric) pierce.Core {
 	rFactory := func(roomMeta pierce.RoomMeta, etcdKey string) Room {
-		return newRoom(roomMeta, etcdKey, etcdAPI)
+		return newRoom(roomMeta, etcdKey, etcdAPI, logm)
 	}
 	return &coreImpl{
 		rooms:     map[pierce.RoomMeta]Room{},
@@ -33,6 +29,7 @@ func NewCore(etcdAPI external.Etcd, keyPrefix string) pierce.Core {
 		chJoin:    make(chan pierce.SocketConnection, 1000),
 		chLeave:   make(chan pierce.SocketConnection, 1000),
 		chDone:    make(chan bool),
+		logm:      logm,
 	}
 }
 
@@ -48,6 +45,7 @@ type coreImpl struct {
 	chJoin  chan pierce.SocketConnection
 	chLeave chan pierce.SocketConnection
 	chDone  chan bool
+	logm    logmetric.LogMetric
 }
 
 func (r *coreImpl) Start() {
@@ -134,7 +132,7 @@ func (r *coreImpl) loopOnce(maintain <-chan time.Time) bool {
 	select {
 	case <-r.chDone:
 		// leave main loop
-		log.Info("core leave main loop")
+		r.logm.Info("core leave main loop")
 		for _, room := range r.rooms {
 			room.Stop()
 		}
@@ -163,7 +161,7 @@ func (r *coreImpl) maintain() {
 	// cleanup empty room
 	for roomMeta, room := range r.rooms {
 		if room.Empty() {
-			log.Infof("remove empty room %v", roomMeta)
+			r.logm.Infof("remove empty room %v", roomMeta)
 			room.Stop()
 			delete(r.rooms, roomMeta)
 		}
@@ -179,7 +177,7 @@ func (r *coreImpl) ensureRoom(roomMeta pierce.RoomMeta) Room {
 		return room
 	}
 
-	log.Infof("create room %v", roomMeta)
+	r.logm.Infof("create room %v", roomMeta)
 	room = r.rFactory(roomMeta, r.toEtcdKey(roomMeta, ""))
 	r.rooms[roomMeta] = room
 	room.Start()
