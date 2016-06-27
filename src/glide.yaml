@@ -81,3 +81,5 @@ import:
   version: 05e600edf28f1b907005ddf6b0488fe68b819971
   subpackages:
   - msgp
+- package: github.com/cenk/backoff
+  version: v1.0.0

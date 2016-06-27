@@ -46,8 +46,10 @@ type Point struct {
 
 // Etcd defines an interface for etcd operation
 type Etcd interface {
-	// GetAndWatch get the key recursively and then watch the key
-	GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.Response
+	// Watch watches key recursively
+	Watch(etcdKey string, afterIndex uint64, resp chan<- *client.Response, done <-chan bool) *client.Error
+	// GetAndWatch gets the key recursively and then watch the key
+	GetAndWatch(etcdKey string, resp chan<- *client.Response, done <-chan bool)
 	// Get returns the response recursively with the given key
 	Get(etcdKey string, recursive bool) (*client.Response, error)
 	// Set sets the value to etcd

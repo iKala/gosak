@@ -3,7 +3,11 @@ package core
 import (
 	"crypto/md5"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/cenk/backoff"
+	"github.com/coreos/etcd/client"
 
 	"straas.io/base/logger"
 	"straas.io/external"
@@ -12,8 +16,12 @@ import (
 
 const (
 	maintainInterval = 30 * time.Second
+	minRetryInterval = 10 * time.Millisecond
+	maxRetryInterval = 5 * time.Second
 	// room TTL is 3 days
 	roomTTL = 3 * 24 * time.Hour
+	// default channel buffer
+	chBuffer = 1000
 )
 
 var (
@@ -30,8 +38,8 @@ func NewCore(etcdAPI external.Etcd, keyPrefix string) pierce.Core {
 		etcdAPI:   etcdAPI,
 		rFactory:  rFactory,
 		keyPrefix: keyPrefix,
-		chJoin:    make(chan pierce.SocketConnection, 1000),
-		chLeave:   make(chan pierce.SocketConnection, 1000),
+		chJoin:    make(chan pierce.SocketConnection, chBuffer),
+		chLeave:   make(chan pierce.SocketConnection, chBuffer),
 		chDone:    make(chan bool),
 	}
 }
@@ -59,6 +67,8 @@ func (r *coreImpl) Start() {
 func (r *coreImpl) Stop() {
 	// TODO: check status ?!
 	close(r.chDone)
+	close(r.chJoin)
+	close(r.chLeave)
 }
 
 func (r *coreImpl) Get(roomMeta pierce.RoomMeta, key string) (interface{}, uint64, error) {
@@ -83,6 +93,7 @@ func (r *coreImpl) Set(roomMeta pierce.RoomMeta, key string, v interface{}, ttl 
 	roomKey := r.toEtcdKey(roomMeta, "")
 	etcdKey := r.toEtcdKey(roomMeta, key)
 
+	// TODO: try to refresh only when no data change
 	// fresh room dir ttl first in case server crash after key updated immediately
 	_, err = r.etcdAPI.RefreshTTL(roomKey, roomTTL)
 	first := r.etcdAPI.IsNotFound(err)
@@ -99,6 +110,55 @@ func (r *coreImpl) Set(roomMeta pierce.RoomMeta, key string, v interface{}, ttl 
 		return err
 	}
 	return nil
+}
+
+func (r *coreImpl) Watch(namespace string, afterVersion uint64, result chan<- *pierce.WatchResponse) error {
+	chResp := make(chan *client.Response, chBuffer)
+	defer close(chResp)
+
+	bf := backoff.NewExponentialBackOff()
+	bf.MaxInterval = maxRetryInterval
+	bf.InitialInterval = minRetryInterval
+	// always retry
+	bf.MaxElapsedTime = 0
+
+	// consumer
+	go func() {
+		for resp := range chResp {
+			if resp.Node == nil {
+				// seems impossible
+				continue
+			}
+			roomMeta, err := r.toRoomMeta(resp.Node.Key)
+			if err != nil {
+				// TODO: add metric
+				log.Errorf("unable to get room meta for %s, err:%v", resp.Node.Key, err)
+				continue
+			}
+			// must always retry here to avoid data lost
+			backoff.Retry(func() error {
+				// TODO: handle done while retry
+				data, version, err := r.GetAll(roomMeta)
+				if err != nil {
+					// TODO: add metric
+					log.Errorf("unable to unmarshal data for %v, err:%v", roomMeta, err)
+					return err
+				}
+				result <- &pierce.WatchResponse{
+					RoomMeta: roomMeta,
+					Version:  version,
+					Data:     data,
+				}
+				return nil
+			}, bf)
+			// send out
+		}
+	}()
+
+	// watch a namespace only
+	key2watch := fmt.Sprintf("%s/%s", r.keyPrefix, namespace)
+	// producer
+	return r.etcdAPI.Watch(key2watch, afterVersion, chResp, r.chDone)
 }
 
 func (r *coreImpl) Join(conn pierce.SocketConnection) {
@@ -120,6 +180,25 @@ func (r *coreImpl) toEtcdKey(roomMeta pierce.RoomMeta, key string) string {
 		return roomKey
 	}
 	return fmt.Sprintf("%s/%s", roomKey, key)
+}
+
+// toRoomMeta converts etcd key to room Meta
+func (r *coreImpl) toRoomMeta(etcdKey string) (pierce.RoomMeta, error) {
+	if !strings.HasPrefix(etcdKey, r.keyPrefix) {
+		return pierce.RoomMeta{}, fmt.Errorf("unable to parse etcdKey %s to RoomMeta", etcdKey)
+	}
+	etcdKey = strings.TrimPrefix(etcdKey, r.keyPrefix)
+	// remove leading "/"
+	etcdKey = strings.TrimPrefix(etcdKey, "/")
+
+	parts := strings.Split(etcdKey, "/")
+	if len(parts) < 4 {
+		return pierce.RoomMeta{}, fmt.Errorf("unable to parse etcdKey %s to RoomMeta", etcdKey)
+	}
+	return pierce.RoomMeta{
+		Namespace: parts[0],
+		ID:        parts[3],
+	}, nil
 }
 
 func (r *coreImpl) mainLoop() {
@@ -152,7 +231,6 @@ func (r *coreImpl) loopOnce(maintain <-chan time.Time) bool {
 
 	case <-maintain:
 		// clean unnecessary room
-		// resend for fail ?!
 		r.maintain()
 	}
 	return true
