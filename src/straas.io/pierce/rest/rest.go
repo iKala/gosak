@@ -18,7 +18,7 @@ func BuildHTTPHandler(log logger.Logger, stat stats.Client) http.Handler {
 	return r.GetHandler()
 }
 
-func healthCheck(w http.ResponseWriter, req *http.Request) *rest.Error {
+func healthCheck(w http.ResponseWriter, req *http.Request, _ rest.Params) *rest.Error {
 	fmt.Fprintf(w, "OK")
 	return nil
 }

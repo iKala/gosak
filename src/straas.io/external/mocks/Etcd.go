@@ -33,20 +33,9 @@ func (_m *Etcd) Get(etcdKey string, recursive bool) (*client.Response, error) {
 	return r0, r1
 }
 
-// GetAndWatch provides a mock function with given fields: etcdKey, done
-func (_m *Etcd) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.Response {
-	ret := _m.Called(etcdKey, done)
-
-	var r0 <-chan *client.Response
-	if rf, ok := ret.Get(0).(func(string, <-chan bool) <-chan *client.Response); ok {
-		r0 = rf(etcdKey, done)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan *client.Response)
-		}
-	}
-
-	return r0
+// GetAndWatch provides a mock function with given fields: etcdKey, resp, done
+func (_m *Etcd) GetAndWatch(etcdKey string, resp chan<- *client.Response, done <-chan bool) {
+	_m.Called(etcdKey, resp, done)
 }
 
 // IsNotFound provides a mock function with given fields: err
@@ -130,4 +119,20 @@ func (_m *Etcd) SetWithTTL(etcdKey string, value string, ttl time.Duration) (*cl
 	}
 
 	return r0, r1
+}
+
+// Watch provides a mock function with given fields: etcdKey, afterIndex, resp, done
+func (_m *Etcd) Watch(etcdKey string, afterIndex uint64, resp chan<- *client.Response, done <-chan bool) *client.Error {
+	ret := _m.Called(etcdKey, afterIndex, resp, done)
+
+	var r0 *client.Error
+	if rf, ok := ret.Get(0).(func(string, uint64, chan<- *client.Response, <-chan bool) *client.Error); ok {
+		r0 = rf(etcdKey, afterIndex, resp, done)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*client.Error)
+		}
+	}
+
+	return r0
 }
