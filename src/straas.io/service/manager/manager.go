@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/facebookgo/stats"
 	"github.com/jinzhu/gorm"
 
 	"straas.io/base/logger"
+	"straas.io/base/logmetric"
 	"straas.io/base/metric"
 	"straas.io/external"
 	"straas.io/service/common"
@@ -17,10 +17,6 @@ import (
 	_ "straas.io/service/fluent"
 	_ "straas.io/service/metric"
 	_ "straas.io/service/mysql"
-)
-
-var (
-	log = logger.Get()
 )
 
 // New creates an instance of manager
@@ -36,7 +32,7 @@ func newMgr(services map[common.ServiceType]common.Service,
 	m := &managerImpl{
 		services:  services,
 		types:     types,
-		stat:      metric.New(moduleName),
+		logMetric: logmetric.New(logger.Get(), metric.New(moduleName)),
 		instances: map[common.ServiceType]interface{}{},
 	}
 	// add flags
@@ -56,7 +52,7 @@ type Manager interface {
 type managerImpl struct {
 	inited    bool
 	types     []common.ServiceType
-	stat      stats.Client
+	logMetric logmetric.LogMetric
 	instances map[common.ServiceType]interface{}
 	services  map[common.ServiceType]common.Service
 }
@@ -79,12 +75,8 @@ func (m *managerImpl) Init() error {
 	return nil
 }
 
-func (m *managerImpl) Logger() logger.Logger {
-	return log
-}
-
-func (m *managerImpl) Metric() stats.Client {
-	return m.stat
+func (m *managerImpl) LogMetric() logmetric.LogMetric {
+	return m.logMetric
 }
 
 func (m *managerImpl) MustGet(t common.ServiceType) interface{} {

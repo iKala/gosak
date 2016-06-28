@@ -12,10 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"straas.io/base/logger"
+	"straas.io/base/logmetric"
 
 	"github.com/codegangsta/negroni"
-	"github.com/facebookgo/stats"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -38,12 +37,11 @@ type Error struct {
 }
 
 // New creates a new restful API builder
-func New(log logger.Logger, stat stats.Client) Rest {
+func New(logm logmetric.LogMetric) Rest {
 	return &restImpl{
 		router:     httprouter.New(),
-		middleware: negroni.New(negroni.NewRecovery(), &restLogger{Logger: log}),
-		log:        log,
-		stat:       stat,
+		logm:       logm,
+		middleware: negroni.New(negroni.NewRecovery(), &restLogger{LogMetric: logm}),
 	}
 }
 
@@ -64,8 +62,7 @@ type Rest interface {
 type restImpl struct {
 	router     *httprouter.Router
 	middleware *negroni.Negroni
-	log        logger.Logger
-	stat       stats.Client
+	logm       logmetric.LogMetric
 	once       sync.Once
 }
 
@@ -89,16 +86,17 @@ func (r *restImpl) wrapper(method, path string, fn HandlerFunc) httprouter.Handl
 	path = strings.TrimPrefix(path, "/")
 	path = strings.Replace(path, "/", ".", -1)
 	prefix := fmt.Sprintf("rest.%s.%s.", method, path)
+	logm := r.logm
 
 	return func(rw http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		defer r.stat.BumpTime(prefix + "proc_time").End()
-		r.stat.BumpSum(prefix+"request", 1)
+		defer logm.BumpTime(prefix + "proc_time").End()
+		logm.BumpSum(prefix+"request", 1)
 		if restErr := fn(rw, req, ps); restErr != nil {
 			if restErr.Detail != "" {
-				r.log.Errorf("error detail: %s", restErr.Detail)
+				logm.Errorf("error detail: %s", restErr.Detail)
 			}
 			http.Error(rw, restErr.Error.Error(), restErr.Code)
-			r.stat.BumpSum(fmt.Sprintf("%ss%d", prefix, restErr.Code), 1)
+			logm.BumpSum(fmt.Sprintf("%ss%d", prefix, restErr.Code), 1)
 			return
 		}
 	}
@@ -106,7 +104,7 @@ func (r *restImpl) wrapper(method, path string, fn HandlerFunc) httprouter.Handl
 
 // restLogger wraps our own base/logger as a negroni middleware
 type restLogger struct {
-	logger.Logger
+	logmetric.LogMetric
 }
 
 // ServeHTTP logs http access and process time

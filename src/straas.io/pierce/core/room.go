@@ -5,6 +5,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 
+	"straas.io/base/logmetric"
 	"straas.io/external"
 	"straas.io/pierce"
 )
@@ -24,9 +25,10 @@ type Room interface {
 	Empty() bool
 }
 
-func newRoom(roomMeta pierce.RoomMeta, etcdKey string, etcdAPI external.Etcd) Room {
-	log.Debugf("create room with key %s", etcdKey)
+func newRoom(roomMeta pierce.RoomMeta, etcdKey string, etcdAPI external.Etcd,
+	logm logmetric.LogMetric) Room {
 
+	logm.Debugf("create room with key %s", etcdKey)
 	return &roomImpl{
 		roomMeta:   roomMeta,
 		conns:      map[pierce.SocketConnection]bool{},
@@ -37,6 +39,8 @@ func newRoom(roomMeta pierce.RoomMeta, etcdKey string, etcdAPI external.Etcd) Ro
 		chJoin:  make(chan pierce.SocketConnection, 10),
 		chLeave: make(chan pierce.SocketConnection, 10),
 		chDone:  make(chan bool),
+
+		logm: logm,
 	}
 }
 
@@ -52,10 +56,12 @@ type roomImpl struct {
 	chJoin  chan pierce.SocketConnection
 	chLeave chan pierce.SocketConnection
 	chDone  chan bool
-
+	//data
 	etcdKey string
 	data    interface{}
 	version uint64
+	// other
+	logm logmetric.LogMetric
 }
 
 func (r *roomImpl) Start() {
@@ -73,20 +79,22 @@ func (r *roomImpl) Empty() bool {
 }
 
 func (r *roomImpl) Join(conn pierce.SocketConnection) {
-	log.Infof("connection %s join %v", conn.ID(), r.roomMeta)
+	r.logm.Infof("connection %s join %v", conn.ID(), r.roomMeta)
+	r.logm.BumpSum("core.room.join", 1)
 	r.conns[conn] = true
 	r.chJoin <- conn
 }
 
 func (r *roomImpl) Leave(conn pierce.SocketConnection) {
-	log.Infof("connection %s leave %v", conn.ID(), r.roomMeta)
+	r.logm.Infof("connection %s leave %v", conn.ID(), r.roomMeta)
+	r.logm.BumpSum("core.room.leave", 1)
 	delete(r.conns, conn)
 	r.chLeave <- conn
 }
 
 func (r *roomImpl) join(conn pierce.SocketConnection) {
 	r.connJoined[conn] = true
-	log.Infof("there %d conns in room %v", len(r.connJoined), r.roomMeta)
+	r.logm.Infof("there %d conns in room %v", len(r.connJoined), r.roomMeta)
 
 	// send if has data
 	if r.version > 0 {
@@ -124,9 +132,7 @@ func (r *roomImpl) loopOnce(wch <-chan *client.Response) bool {
 		// apply change does not involve any IO operation
 		// it should be no error
 		if err := r.applyChange(resp); err != nil {
-			// TODO: put metric here
-			log.Errorf("fail to apply resp %+v, err:%v", resp, err)
-			// WTD
+			r.logm.Errorf("fail to apply resp %+v, err:%v", resp, err)
 			return true
 		}
 		r.broadcast()
@@ -135,24 +141,24 @@ func (r *roomImpl) loopOnce(wch <-chan *client.Response) bool {
 }
 
 func (r *roomImpl) applyChange(resp *client.Response) error {
-	log.Debugf("%+v\n", resp)
+	r.logm.Debugf("%+v\n", resp)
 	cur := resp.Node
 
 	// get room and key from etcd key
 	key, err := subkey(r.etcdKey, cur.Key)
 	if err != nil {
-		// illegal key
+		r.logm.BumpSum("core.room.illegal_key.err", 1)
 		return err
 	}
 
 	data, version, err := toValue(cur, unmarshaller)
 	if err != nil {
-		// WTF
+		r.logm.BumpSum("core.room.to_value.err", 1)
 		return err
 	}
 	// older changes, just ignore it
 	if version <= r.version {
-		// TODO: log
+		r.logm.BumpSum("core.room.old_version", 1)
 		return nil
 	}
 	r.version = version
@@ -176,14 +182,14 @@ func (r *roomImpl) applyChange(resp *client.Response) error {
 
 	default:
 		// should not reach here
+		r.logm.BumpSum("core.room.unknown_action.err", 1)
 		return fmt.Errorf("unknown action %s", resp.Action)
 	}
 	return nil
 }
 
 func (r *roomImpl) broadcast() {
-	// TODO: aggregates changes in case update too frequently
-	// TODO: check previous value
+	r.logm.BumpSum("core.room.broadcast", 1)
 	for conn := range r.connJoined {
 		conn.Emit(r.roomMeta, r.data, r.version)
 	}

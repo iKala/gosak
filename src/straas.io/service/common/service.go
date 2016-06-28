@@ -3,10 +3,9 @@ package common
 import (
 	"fmt"
 
-	"github.com/facebookgo/stats"
 	"github.com/jinzhu/gorm"
 
-	"straas.io/base/logger"
+	"straas.io/base/logmetric"
 	"straas.io/external"
 )
 
@@ -28,10 +27,8 @@ type ServiceGetter interface {
 	MustGet(ServiceType) interface{}
 	// Get return the service instance
 	Get(ServiceType) (interface{}, error)
-	// Logger returns logger
-	Logger() logger.Logger
-	// metric returns metric
-	Metric() stats.Client
+	// LogMetric returns logger and metric
+	LogMetric() logmetric.LogMetric
 	// Controller returns controller start func
 	Controller() func() error
 	// MetricExporter return metric exporter stop func
