@@ -9,13 +9,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"straas.io/base/logger"
-	"straas.io/base/metric"
+	"straas.io/base/logmetric"
 
 	"github.com/stretchr/testify/suite"
 )
 
-var log = logger.Get()
+var logm = logmetric.NewDummy()
 
 func TestRestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(RestHandlerTestSuite))
@@ -34,7 +33,7 @@ func (suite *RestHandlerTestSuite) TestSimpleRoute() {
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	suite.Equal(nil, err)
 
-	router := New(log, metric.New("test"))
+	router := New(logm)
 	router.Route("GET", "/healthcheck", okEchoer)
 	handler := router.GetHandler()
 	handler.ServeHTTP(suite.response, req)
@@ -49,7 +48,7 @@ func (suite *RestHandlerTestSuite) Test404ForNonexistingRoute() {
 	req, err := http.NewRequest("GET", "/thereIsNoSuchRoute", nil)
 	suite.Equal(nil, err)
 
-	router := New(log, metric.New("test"))
+	router := New(logm)
 	router.Route("GET", "/ok", okEchoer)
 	handler := router.GetHandler()
 	handler.ServeHTTP(suite.response, req)
@@ -63,7 +62,7 @@ func (suite *RestHandlerTestSuite) TestSimpleMiddleware() {
 	req, err := http.NewRequest("GET", "/ok", nil)
 	suite.Equal(nil, err)
 
-	router := New(log, metric.New("test"))
+	router := New(logm)
 	router.Use(karaInserter)
 	router.Route("GET", "/ok", okEchoer)
 	handler := router.GetHandler()
@@ -76,7 +75,7 @@ func (suite *RestHandlerTestSuite) TestSimpleMiddleware() {
 }
 
 func (suite *RestHandlerTestSuite) TestMultipleRoutes() {
-	router := New(log, metric.New("test"))
+	router := New(logm)
 	router.Route("GET", "/ok", okEchoer)
 	router.Route("GET", "/foo", fooEchoer)
 	handler := router.GetHandler()
@@ -103,7 +102,7 @@ func (suite *RestHandlerTestSuite) TestHandlerReturnError() {
 	req, err := http.NewRequest("GET", "/ok", nil)
 	suite.Equal(nil, err)
 
-	router := New(log, metric.New("test"))
+	router := New(logm)
 	errorStr := "user sees this string so I can't say anything here"
 	router.Route("GET", "/ok", func(rw http.ResponseWriter, req *http.Request, _ Params) *Error {
 		return &Error{
@@ -125,7 +124,7 @@ func (suite *RestHandlerTestSuite) TestMiddlewareReturnError() {
 	req, err := http.NewRequest("GET", "/ok", nil)
 	suite.Equal(nil, err)
 
-	router := New(log, metric.New("test"))
+	router := New(logm)
 	errorStr := "user sees this string so I can't say anything here"
 	router.Use(func(rw http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
 		http.Error(rw, errorStr, http.StatusInternalServerError)
@@ -145,7 +144,7 @@ func (suite *RestHandlerTestSuite) TestNamedParamRoute() {
 	req, err := http.NewRequest("GET", "/check_id/"+id, nil)
 	suite.Equal(nil, err)
 
-	router := New(log, metric.New("test"))
+	router := New(logm)
 	router.Route("GET", "/check_id/:id", func(rw http.ResponseWriter, req *http.Request, ps Params) *Error {
 		suite.Equal(id, ps.ByName("id"))
 		fmt.Fprintf(rw, id)

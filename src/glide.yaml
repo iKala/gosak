@@ -93,3 +93,13 @@ import:
   version: v1.1.0
 - package: github.com/cenk/backoff
   version: v1.0.0
+- package: github.com/jinzhu/gorm
+  version: 321d10b67b7218c5cf3bebc0c01fc8c4536c2bc7
+  subpackages:
+  - dialects/mysql
+- package: github.com/go-sql-driver/mysql
+  version: a732e14c62dde3285440047bba97581bc472ae18
+- package: github.com/jinzhu/inflection
+  version: 3272df6c21d04180007eb3349844c89a3856bc25
+- package: github.com/mattn/go-sqlite3
+  version: v1.1.0

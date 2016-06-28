@@ -4,20 +4,19 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/facebookgo/stats"
+	"github.com/jinzhu/gorm"
 
 	"straas.io/base/logger"
+	"straas.io/base/logmetric"
 	"straas.io/base/metric"
+	"straas.io/external"
 	"straas.io/service/common"
 	// services
 	_ "straas.io/service/controller"
 	_ "straas.io/service/etcd"
 	_ "straas.io/service/fluent"
 	_ "straas.io/service/metric"
-)
-
-var (
-	log = logger.Get()
+	_ "straas.io/service/mysql"
 )
 
 // New creates an instance of manager
@@ -33,7 +32,7 @@ func newMgr(services map[common.ServiceType]common.Service,
 	m := &managerImpl{
 		services:  services,
 		types:     types,
-		stat:      metric.New(moduleName),
+		logMetric: logmetric.New(logger.Get(), metric.New(moduleName)),
 		instances: map[common.ServiceType]interface{}{},
 	}
 	// add flags
@@ -53,7 +52,7 @@ type Manager interface {
 type managerImpl struct {
 	inited    bool
 	types     []common.ServiceType
-	stat      stats.Client
+	logMetric logmetric.LogMetric
 	instances map[common.ServiceType]interface{}
 	services  map[common.ServiceType]common.Service
 }
@@ -76,12 +75,8 @@ func (m *managerImpl) Init() error {
 	return nil
 }
 
-func (m *managerImpl) Logger() logger.Logger {
-	return log
-}
-
-func (m *managerImpl) Metric() stats.Client {
-	return m.stat
+func (m *managerImpl) LogMetric() logmetric.LogMetric {
+	return m.logMetric
 }
 
 func (m *managerImpl) MustGet(t common.ServiceType) interface{} {
@@ -98,6 +93,26 @@ func (m *managerImpl) Get(t common.ServiceType) (interface{}, error) {
 		return nil, fmt.Errorf("fail to find service for %v", t)
 	}
 	return inst, nil
+}
+
+func (m *managerImpl) Controller() func() error {
+	return m.MustGet(common.Controller).(func() error)
+}
+
+func (m *managerImpl) MetricExporter() func() {
+	return m.MustGet(common.MetricExporter).(func())
+}
+
+func (m *managerImpl) MySQL() *gorm.DB {
+	return m.MustGet(common.MySQL).(*gorm.DB)
+}
+
+func (m *managerImpl) Fluent() external.Fluent {
+	return m.MustGet(common.Fluent).(external.Fluent)
+}
+
+func (m *managerImpl) Etcd() external.Etcd {
+	return m.MustGet(common.Etcd).(external.Etcd)
 }
 
 func (m *managerImpl) addFlags(touched map[common.ServiceType]bool,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"straas.io/external"
 	"straas.io/pierce/core"
 	"straas.io/pierce/rest"
 	"straas.io/pierce/socket"
@@ -30,48 +29,48 @@ var (
 func main() {
 	flag.Parse()
 
-	log := srvManager.Logger()
+	logm := srvManager.LogMetric()
 
 	if *env == "" {
-		log.Fatal("environment is empty")
+		logm.Fatal("environment is empty")
 	}
 
 	if err := srvManager.Init(); err != nil {
-		log.Fatalf("fail to init services, err:%v", err)
+		logm.Fatalf("fail to init services, err:%v", err)
 	}
 
 	// checks services
-	ctrl := srvManager.MustGet(common.Controller).(func() error)
-	etcdAPI := srvManager.MustGet(common.Etcd).(external.Etcd)
+	ctrl := srvManager.Controller()
+	etcdAPI := srvManager.Etcd()
 
 	// start controller
 	go func() {
-		log.Fatal(ctrl())
+		logm.Fatal(ctrl())
 	}()
 
 	// create core
 	coreRoot := fmt.Sprintf(`/%s/pierce`, *env)
-	coreMgr := core.NewCore(etcdAPI, coreRoot)
+	coreMgr := core.NewCore(etcdAPI, coreRoot, logm)
 	coreMgr.Start()
 
 	// create socket handler
 	if *enableSocket {
-		skServer := socket.NewServer(coreMgr)
+		skServer := socket.NewServer(coreMgr, logm)
 		socketHandler, err := skServer.Create()
 		if err != nil {
-			log.Fatal(err)
+			logm.Fatal(err)
 		}
 
-		log.Infof("[main] starting socket API server")
+		logm.Infof("[main] starting socket API server")
 		http.Handle("/socket.io/", socketHandler)
 	}
 
 	// create rest handler
 	if *enableRest {
-		restHandler := rest.BuildHTTPHandler(log, srvManager.Metric())
+		restHandler := rest.BuildHTTPHandler(logm)
 
-		log.Infof("[main] starting restful API server")
+		logm.Infof("[main] starting restful API server")
 		http.Handle("/", restHandler)
 	}
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
+	logm.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/stretchr/testify/suite"
 
+	"straas.io/base/logmetric"
 	etcdMocks "straas.io/external/mocks"
 	"straas.io/pierce"
 	"straas.io/pierce/mocks"
@@ -36,7 +37,7 @@ type roomTestSuite struct {
 
 func (s *roomTestSuite) SetupTest() {
 	s.etcdMock = &etcdMocks.Etcd{}
-	s.impl = newRoom(testRoomMeta, testEtcdKey, s.etcdMock).(*roomImpl)
+	s.impl = newRoom(testRoomMeta, testEtcdKey, s.etcdMock, logmetric.NewDummy()).(*roomImpl)
 
 }
 

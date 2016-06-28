@@ -11,8 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 
-	"straas.io/base/logger"
-	"straas.io/base/metric"
+	"straas.io/base/logmetric"
 )
 
 const (
@@ -33,8 +32,7 @@ type etcdTestSuite struct {
 func (s *etcdTestSuite) SetupTest() {
 	s.keyAPI = &keysAPIMock{}
 	s.impl = &etcdImpl{
-		log:  logger.Get(),
-		stat: metric.New("test"),
+		logm: logmetric.NewDummy(),
 		api:  s.keyAPI,
 	}
 }
