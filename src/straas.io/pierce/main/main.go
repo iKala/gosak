@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"straas.io/external"
 	"straas.io/pierce/core"
 	"straas.io/pierce/rest"
 	"straas.io/pierce/socket"
@@ -41,8 +40,8 @@ func main() {
 	}
 
 	// checks services
-	ctrl := srvManager.MustGet(common.Controller).(func() error)
-	etcdAPI := srvManager.MustGet(common.Etcd).(external.Etcd)
+	ctrl := srvManager.Controller()
+	etcdAPI := srvManager.Etcd()
 
 	// start controller
 	go func() {
