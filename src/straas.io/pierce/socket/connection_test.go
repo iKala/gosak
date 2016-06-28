@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"straas.io/base/logmetric"
 	"straas.io/external/mocks"
 	"straas.io/pierce"
 )
@@ -36,7 +37,7 @@ type ConnectionTestSuite struct {
 func (s *ConnectionTestSuite) TestEmit() {
 
 	sk := &mocks.SocketIO{}
-	conn := NewConn(sk, []pierce.RoomMeta{troom1, troom2, troom3})
+	conn := NewConn(sk, []pierce.RoomMeta{troom1, troom2, troom3}, logmetric.NewDummy())
 
 	sk.Mock.On("Emit", "data", []interface{}{"xxx", "aaa", "v1"}).Return(nil).Once()
 	conn.Emit(troom1, "v1", 10)
