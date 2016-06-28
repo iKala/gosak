@@ -8,7 +8,7 @@ before_install:
   - go get golang.org/x/tools/cmd/cover
 
 install:
-  make deps
+  make restore
 
 script:
   - PATH="$HOME/gopath/bin:$PATH"
