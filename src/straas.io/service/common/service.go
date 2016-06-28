@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/facebookgo/stats"
+	"github.com/jinzhu/gorm"
 
 	"straas.io/base/logger"
+	"straas.io/external"
 )
 
 // define service types, pls list in alphabetical order
@@ -14,6 +16,7 @@ const (
 	Etcd           ServiceType = "etcd"
 	Fluent         ServiceType = "fluent"
 	MetricExporter ServiceType = "metric_exporter"
+	MySQL          ServiceType = "mysql"
 )
 
 // ServiceType define service type
@@ -29,6 +32,16 @@ type ServiceGetter interface {
 	Logger() logger.Logger
 	// metric returns metric
 	Metric() stats.Client
+	// Controller returns controller start func
+	Controller() func() error
+	// MetricExporter return metric exporter stop func
+	MetricExporter() func()
+	// MySQL returns a MySQL client wrapped with gorm
+	MySQL() *gorm.DB
+	// Fluent return a fluent client
+	Fluent() external.Fluent
+	// Etcd return a etcd client
+	Etcd() external.Etcd
 }
 
 // Service defines an interface for common services

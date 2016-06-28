@@ -4,7 +4,6 @@ import (
 	"flag"
 
 	"straas.io/base/metric"
-	"straas.io/external"
 	"straas.io/service/common"
 )
 
@@ -25,11 +24,11 @@ func (s *service) AddFlags() {
 }
 
 func (s *service) New(get common.ServiceGetter) (interface{}, error) {
-	fluent := get.MustGet(common.Fluent).(external.Fluent)
-
 	done := make(chan bool)
-	metric.StartExport(fluent, s.tag, done)
-	return done, nil
+	metric.StartExport(get.Fluent(), s.tag, done)
+	return func() {
+		close(done)
+	}, nil
 }
 
 func (s *service) Dependencies() []common.ServiceType {

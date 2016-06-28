@@ -5,15 +5,18 @@ import (
 	"fmt"
 
 	"github.com/facebookgo/stats"
+	"github.com/jinzhu/gorm"
 
 	"straas.io/base/logger"
 	"straas.io/base/metric"
+	"straas.io/external"
 	"straas.io/service/common"
 	// services
 	_ "straas.io/service/controller"
 	_ "straas.io/service/etcd"
 	_ "straas.io/service/fluent"
 	_ "straas.io/service/metric"
+	_ "straas.io/service/mysql"
 )
 
 var (
@@ -98,6 +101,26 @@ func (m *managerImpl) Get(t common.ServiceType) (interface{}, error) {
 		return nil, fmt.Errorf("fail to find service for %v", t)
 	}
 	return inst, nil
+}
+
+func (m *managerImpl) Controller() func() error {
+	return m.MustGet(common.Controller).(func() error)
+}
+
+func (m *managerImpl) MetricExporter() func() {
+	return m.MustGet(common.MetricExporter).(func())
+}
+
+func (m *managerImpl) MySQL() *gorm.DB {
+	return m.MustGet(common.MySQL).(*gorm.DB)
+}
+
+func (m *managerImpl) Fluent() external.Fluent {
+	return m.MustGet(common.Fluent).(external.Fluent)
+}
+
+func (m *managerImpl) Etcd() external.Etcd {
+	return m.MustGet(common.Etcd).(external.Etcd)
 }
 
 func (m *managerImpl) addFlags(touched map[common.ServiceType]bool,
