@@ -51,84 +51,76 @@ type etcdImpl struct {
 	timeout time.Duration
 }
 
-// GetAndWatch returns a chan for etcd response, this function will handle error reconnect
-// and outdate.
-func (a *etcdImpl) GetAndWatch(etcdKey string, done <-chan bool) <-chan *client.Response {
-	return a.getAndWatch(etcdKey, done, make(chan bool))
+func (a *etcdImpl) Watch(etcdKey string, afterIndex uint64,
+	chResp chan<- *client.Response, done <-chan bool) *client.Error {
+	logm := a.logm
+	w := a.getWatcher(etcdKey, afterIndex)
+
+	for {
+		var resp *client.Response
+		var err error
+
+		ctx, cancel := context.WithCancel(context.Background())
+		// must use goroutine in order to cancel watch
+		go func() {
+			resp, err = w.Next(ctx)
+			// it's ok to call cancel multiple times
+			cancel()
+		}()
+
+		select {
+		case <-done:
+			cancel()
+			// terminate watcher loop
+			return nil
+		case <-ctx.Done():
+		}
+
+		if err != nil {
+			cerr, ok := err.(*client.Error)
+			// index outdate, need to restart watch loop
+			// TODO: check client.EcodeWatcherCleared
+			if ok && cerr.Code == client.ErrorCodeEventIndexCleared {
+				logm.BumpSum("etcd.indexoutdated.err", 1)
+				return cerr
+			}
+
+			// What to do ?
+			logm.BumpSum("etcd.watchnext.err", 1)
+			logm.Errorf("fail to watch, err:%v", err)
+			// TODO: backoff if other error ?!
+			continue
+		}
+		chResp <- resp
+	}
 }
 
-func (a *etcdImpl) getAndWatch(etcdKey string, done <-chan bool, fin chan<- bool) <-chan *client.Response {
-	// check if need to leave loop
-	checkDone := func() bool {
-		// check return ?
+// GetAndWatch returns a chan for etcd response, this function will handle error reconnect
+// and outdate.
+func (a *etcdImpl) GetAndWatch(etcdKey string, chResp chan<- *client.Response, done <-chan bool) {
+	logm := a.logm
+	for {
+		// check if need to leave loop
 		select {
 		case <-done:
 			// need to terminate watcher loop
-			return true
+			return
 		default:
-			return false
+		}
+
+		resp, err := a.Get(etcdKey, true)
+		if err != nil {
+			logm.Errorf("fail to get value, err:%v", err)
+			// TODO: backoff
+			continue
+		}
+		chResp <- resp
+
+		// TODO: index plus one ?!
+		if err := a.Watch(etcdKey, resp.Index, chResp, done); err != nil {
+			// critical erro
 		}
 	}
-
-	ch := make(chan *client.Response, bufferSize)
-	logm := a.logm
-
-	go func() {
-		defer func() {
-			close(fin)
-		}()
-		for {
-			if checkDone() {
-				return
-			}
-
-			resp, err := a.Get(etcdKey, true)
-			if err != nil {
-				logm.Errorf("fail to get value, err:%v", err)
-				// TODO: backoff
-				continue
-			}
-			ch <- resp
-
-			// TODO: index plus one ?!
-			w := a.getWatcher(etcdKey, resp.Index)
-			for {
-				ctx, cancel := context.WithCancel(context.Background())
-				// must use goroutine in order to cancel watch
-				go func() {
-					resp, err = w.Next(ctx)
-					// it's ok to call cancel multiple times
-					cancel()
-				}()
-
-				select {
-				case <-done:
-					cancel()
-					// terminate watcher loop
-					return
-				case <-ctx.Done():
-				}
-
-				if err != nil {
-					cerr, ok := err.(*client.Error)
-					// index outdate, need to restart watch loop
-					if ok && cerr.Code == client.ErrorCodeEventIndexCleared {
-						logm.BumpSum("etcd.indexoutdated.err", 1)
-						break
-					}
-
-					// What to do ?
-					logm.BumpSum("etcd.watchnext.err", 1)
-					logm.Errorf("fail to watch, err:%v", err)
-					// TODO: backoff if other error ?!
-					continue
-				}
-				ch <- resp
-			}
-		}
-	}()
-
-	return ch
 }
 
 func (a *etcdImpl) Get(etcdKey string, recursive bool) (*client.Response, error) {

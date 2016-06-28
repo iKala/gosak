@@ -214,7 +214,8 @@ func (s *etcdTestSuite) TestWatchAndGet() {
 	s.keyAPI.On("Get", mock.Anything, testKey, getOpt).Return(testResp, nil).Once()
 	s.keyAPI.On("Watcher", testKey, watchOpt).Return(mwatcher).Once()
 
-	wch := s.impl.GetAndWatch(testKey, done)
+	wch := make(chan *client.Response, 10)
+	go s.impl.GetAndWatch(testKey, wch, done)
 
 	changes <- change1
 	changes <- change2
@@ -268,7 +269,8 @@ func (s *etcdTestSuite) TestGetAndWatchOutdate() {
 	s.keyAPI.On("Get", mock.Anything, testKey, getOpt).Return(testResp, nil).Twice()
 	s.keyAPI.On("Watcher", testKey, watchOpt).Return(mwatcher).Twice()
 
-	wch := s.impl.GetAndWatch(testKey, done)
+	wch := make(chan *client.Response, 10)
+	go s.impl.GetAndWatch(testKey, wch, done)
 
 	changes <- nil
 	errors <- err1
@@ -322,7 +324,8 @@ func (s *etcdTestSuite) TestGetAndWatchError() {
 	s.keyAPI.On("Get", mock.Anything, testKey, getOpt).Return(testResp, nil).Once()
 	s.keyAPI.On("Watcher", testKey, watchOpt).Return(mwatcher).Once()
 
-	wch := s.impl.GetAndWatch(testKey, done)
+	wch := make(chan *client.Response, 10)
+	go s.impl.GetAndWatch(testKey, wch, done)
 
 	changes <- nil
 	errors <- err1
@@ -336,14 +339,12 @@ func (s *etcdTestSuite) TestGetAndWatchError() {
 
 func (s *etcdTestSuite) TestDone() {
 	done := make(chan bool)
-	fin := make(chan bool)
 
 	close(done)
-
-	wch := s.impl.getAndWatch(testKey, done, fin)
+	wch := make(chan *client.Response, 10)
+	s.impl.GetAndWatch(testKey, wch, done)
 
 	// wait getAndWatch done
-	<-fin
 	select {
 	case <-wch:
 		assert.Fail(s.T(), "should be no resp")
@@ -354,7 +355,6 @@ func (s *etcdTestSuite) TestDone() {
 
 func (s *etcdTestSuite) TestDoneWhenNext() {
 	done := make(chan bool)
-	fin := make(chan bool)
 
 	testIdx := uint64(333)
 	getOpt := &client.GetOptions{
@@ -384,11 +384,12 @@ func (s *etcdTestSuite) TestDoneWhenNext() {
 	s.keyAPI.On("Get", mock.Anything, testKey, getOpt).Return(testResp, nil).Once()
 	s.keyAPI.On("Watcher", testKey, watchOpt).Return(mwatcher).Once()
 
-	wch := s.impl.getAndWatch(testKey, done, fin)
+	wch := make(chan *client.Response, 10)
+	s.impl.GetAndWatch(testKey, wch, done)
+
 	s.Equal(<-wch, testResp)
 
 	// wait getAndWatch done
-	<-fin
 	select {
 	case <-wch:
 		assert.Fail(s.T(), "should be no resp")

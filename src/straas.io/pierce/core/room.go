@@ -70,6 +70,8 @@ func (r *roomImpl) Start() {
 
 func (r *roomImpl) Stop() {
 	close(r.chDone)
+	close(r.chJoin)
+	close(r.chLeave)
 }
 
 func (r *roomImpl) Empty() bool {
@@ -106,7 +108,11 @@ func (r *roomImpl) leave(conn pierce.SocketConnection) {
 }
 
 func (r *roomImpl) mainLoop() {
-	wch := r.etcdAPI.GetAndWatch(r.etcdKey, r.chDone)
+	wch := make(chan *client.Response, 10)
+	go func() {
+		r.etcdAPI.GetAndWatch(r.etcdKey, wch, r.chDone)
+		close(wch)
+	}()
 	for r.loopOnce(wch) {
 	}
 }
@@ -175,6 +181,7 @@ func (r *roomImpl) applyChange(resp *client.Response) error {
 		}
 
 	default:
+		// should not reach here
 		r.logm.BumpSum("core.room.unknown_action.err", 1)
 		return fmt.Errorf("unknown action %s", resp.Action)
 	}

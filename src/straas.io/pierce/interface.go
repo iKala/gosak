@@ -21,6 +21,8 @@ type Core interface {
 	Join(SocketConnection)
 	// Leave removes socket connection
 	Leave(SocketConnection)
+	// Watch watches changes
+	Watch(namespace string, afterVersion uint64, resp chan<- *WatchResponse) error
 }
 
 // RoomMeta includes namespace and id of a room
@@ -29,6 +31,16 @@ type RoomMeta struct {
 	Namespace string
 	// RoomId of the room
 	ID string
+}
+
+// WatchResponse defines reponses of Core.Watch
+type WatchResponse struct {
+	// RoomMeta is room meta
+	RoomMeta RoomMeta
+	// Data is content
+	Data interface{}
+	// Version is the version of the data
+	Version uint64
 }
 
 func (r *RoomMeta) String() string {
