@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
 
 	"straas.io/base/logger"
@@ -16,8 +15,6 @@ import (
 
 const (
 	maintainInterval = 30 * time.Second
-	minRetryInterval = 10 * time.Millisecond
-	maxRetryInterval = 5 * time.Second
 	// room TTL is 3 days
 	roomTTL = 3 * 24 * time.Hour
 	// default channel buffer
@@ -112,15 +109,9 @@ func (r *coreImpl) Set(roomMeta pierce.RoomMeta, key string, v interface{}, ttl 
 	return nil
 }
 
-func (r *coreImpl) Watch(namespace string, afterVersion uint64, result chan<- *pierce.WatchResponse) error {
+func (r *coreImpl) Watch(namespace string, afterVersion uint64, result chan<- pierce.RoomMeta) error {
 	chResp := make(chan *client.Response, chBuffer)
 	defer close(chResp)
-
-	bf := backoff.NewExponentialBackOff()
-	bf.MaxInterval = maxRetryInterval
-	bf.InitialInterval = minRetryInterval
-	// always retry
-	bf.MaxElapsedTime = 0
 
 	// consumer
 	go func() {
@@ -135,23 +126,7 @@ func (r *coreImpl) Watch(namespace string, afterVersion uint64, result chan<- *p
 				log.Errorf("unable to get room meta for %s, err:%v", resp.Node.Key, err)
 				continue
 			}
-			// must always retry here to avoid data lost
-			backoff.Retry(func() error {
-				// TODO: handle done while retry
-				data, version, err := r.GetAll(roomMeta)
-				if err != nil {
-					// TODO: add metric
-					log.Errorf("unable to unmarshal data for %v, err:%v", roomMeta, err)
-					return err
-				}
-				result <- &pierce.WatchResponse{
-					RoomMeta: roomMeta,
-					Version:  version,
-					Data:     data,
-				}
-				return nil
-			}, bf)
-			// send out
+			result <- roomMeta
 		}
 	}()
 

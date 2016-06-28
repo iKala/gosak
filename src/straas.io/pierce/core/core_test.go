@@ -176,7 +176,7 @@ func (s *coreTestSuite) TestSetError3() {
 }
 
 func (s *coreTestSuite) TestWatch() {
-	wch := make(chan *pierce.WatchResponse, 10)
+	wch := make(chan pierce.RoomMeta, 10)
 	// mock Watch
 	respFn := func(key string, afterIdx uint64, ch chan<- *client.Response, done <-chan bool) *client.Error {
 		ch <- &client.Response{
@@ -193,40 +193,14 @@ func (s *coreTestSuite) TestWatch() {
 	}
 	s.etcdMock.On("Watch", "/pierce/xxx", uint64(100), mock.Anything, mock.Anything).Return(respFn).Once()
 
-	// mock GetAll
-	s.etcdMock.On("Get", "/pierce/xxx/47/bc/aaa", true).Return(&client.Response{
-		Node: &client.Node{
-			Key:           "/pierce/xxx/47/bc/aaa",
-			Value:         "1234",
-			ModifiedIndex: 103,
-		},
-	}, nil).Once()
-	// test GetAll retry
-	s.etcdMock.On("Get", "/pierce/xxx/47/bc/aaa", true).Return(nil, fmt.Errorf("some error")).Once()
-	s.etcdMock.On("Get", "/pierce/xxx/47/bc/aaa", true).Return(&client.Response{
-		Node: &client.Node{
-			Key:           "/pierce/xxx/47/bc/aaa",
-			Value:         "1235",
-			ModifiedIndex: 106,
-		},
-	}, nil).Once()
-
 	s.impl.Watch("xxx", 100, wch)
 
-	s.Equal(<-wch, &pierce.WatchResponse{
-		RoomMeta: pierce.RoomMeta{Namespace: "xxx", ID: "aaa"},
-		Data:     float64(1234),
-		Version:  103,
-	})
-	s.Equal(<-wch, &pierce.WatchResponse{
-		RoomMeta: pierce.RoomMeta{Namespace: "xxx", ID: "aaa"},
-		Data:     float64(1235),
-		Version:  106,
-	})
+	s.Equal(<-wch, pierce.RoomMeta{Namespace: "xxx", ID: "aaa"})
+	s.Equal(<-wch, pierce.RoomMeta{Namespace: "xxx", ID: "aaa"})
 }
 
 func (s *coreTestSuite) TestWatchError() {
-	wch := make(chan *pierce.WatchResponse, 10)
+	wch := make(chan pierce.RoomMeta, 10)
 	// mock Watch
 	respFn := func(key string, afterIdx uint64, ch chan<- *client.Response, done <-chan bool) *client.Error {
 		return &client.Error{}

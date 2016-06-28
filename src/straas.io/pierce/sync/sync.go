@@ -4,9 +4,15 @@ import (
 	"time"
 
 	// "github.com/coreos/etcd/client"
+	"github.com/cenk/backoff"
 
-	"straas.io/external"
 	"straas.io/pierce"
+)
+
+const (
+	minRetryInterval = 10 * time.Millisecond
+	maxRetryInterval = 3 * time.Second
+	watchBuffer      = 10000
 )
 
 type Record struct {
@@ -28,25 +34,40 @@ type Record struct {
 	CreatedAt time.Time
 }
 
-type sinker func(roomMeta pierce.RoomMeta, data interface{}, version uint64) error
+func New(coreMgr pierce.Core, namespace string) pierce.Syncer {
+	bf := backoff.NewExponentialBackOff()
+	bf.MaxInterval = maxRetryInterval
+	bf.InitialInterval = minRetryInterval
+	// always retry
+	bf.MaxElapsedTime = 0
 
-type syncQueue chan string
+	return &syncer{
+		coreMgr:   coreMgr,
+		queue:     make(chan pierce.RoomMeta),
+		backoff:   bf,
+		namespace: namespace,
+		// sinker: sinker,
+	}
+}
+
+type sinker interface {
+	Sink(roomMeta pierce.RoomMeta, data interface{}, version uint64) error
+	Diff(index uint64, size int) ([]Record, error)
+	LatestVersion() (uint64, error)
+}
 
 type syncer struct {
-	// etcd api
-	api external.Etcd
 	// pierce core manager
-	coreMgr pierce.Core
-	// named queues for better performance
-	queues map[string]syncQueue
-	done   chan bool
-	sinker sinker
+	namespace string
+	coreMgr   pierce.Core
+	queue     chan pierce.RoomMeta
+	done      chan bool
+	sinker    sinker
+	backoff   backoff.BackOff
 }
 
 func (s *syncer) Start() {
-	for _, q := range s.queues {
-		go s.syncLoop(q)
-	}
+	go s.syncLoop()
 	go s.watch()
 }
 
@@ -55,47 +76,52 @@ func (s *syncer) Stop() {
 }
 
 func (s *syncer) Add(roomMeta pierce.RoomMeta) {
-	// conver to roomid
-
+	// add room for sync
+	s.queue <- roomMeta
 }
 
 func (s *syncer) watch() {
-	// index out of sync
-
+	ch := make(chan pierce.RoomMeta, watchBuffer)
+	// always retry
+	backoff.Retry(func() error {
+		idx, err := s.sinker.LatestVersion()
+		if err != nil {
+			return err
+		}
+		// TODO: IMPORTANT handle critical error here
+		return s.coreMgr.Watch(s.namespace, idx, ch)
+	}, s.backoff)
 }
 
-func (s *syncer) syncLoop(queue syncQueue) {
-	for s.syncOnce(queue) {
+func (s *syncer) syncLoop() {
+	for s.syncOnce() {
 	}
 }
 
-func (s *syncer) syncOnce(queue syncQueue) bool {
+func (s *syncer) syncOnce() bool {
 	select {
 	case <-s.done:
 		return false
 
-	case resp := <-queue:
-		// TODO: compare
-		s.doSync(resp, false)
+	case resp := <-s.queue:
+		// TODO: comparison mechanism
+		// TODO: send metric if fail too many times
+		backoff.Retry(func() error {
+			// TODO: add metrics
+			return s.doSync(resp, false)
+		}, s.backoff)
 	}
 	return true
 }
 
-// leverge namedQueue for better performance
-// TODO: retry sync process or backoff unit success
-func (s *syncer) doSync(etcdKey string, compare bool) error {
-	// toKey ?!
-	var roomMeta pierce.RoomMeta
-
+func (s *syncer) doSync(roomMeta pierce.RoomMeta, compare bool) error {
 	data, version, err := s.coreMgr.GetAll(roomMeta)
 	if err != nil {
-		// WTD ?!
+		// backoff and retry
 		return err
 	}
-
 	// how to know it's newer or older changes ?!
-	// sinker
-	if err := s.sinker(roomMeta, data, version); err != nil {
+	if err := s.sinker.Sink(roomMeta, data, version); err != nil {
 		return err
 	}
 	return nil
