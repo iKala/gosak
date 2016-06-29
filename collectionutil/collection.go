@@ -1,6 +1,4 @@
-package gosak
-
-import ()
+package collectionutil
 
 // Qualifiable is the interface that represents those things could be filtered
 // according to some criteria.

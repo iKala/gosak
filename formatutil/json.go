@@ -1,4 +1,4 @@
-package gosak
+package formatutil
 
 import (
 	"encoding/json"
