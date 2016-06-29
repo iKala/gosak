@@ -65,6 +65,6 @@ type Syncer interface {
 	Stop()
 	// Add adds room meta for sync
 	Add(roomMeta RoomMeta)
-
+	// Diff returns changes after "afterIdx" with page size "size"
 	Diff(namespace string, afterIdx uint64, size int) ([]Record, error)
 }
