@@ -1,4 +1,4 @@
-package gosak
+package collectionutil
 
 import (
 	"testing"
