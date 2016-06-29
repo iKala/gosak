@@ -104,13 +104,13 @@ func (_m *Core) Stop() {
 	_m.Called()
 }
 
-// Watch provides a mock function with given fields: namespace, afterVersion, resp
-func (_m *Core) Watch(namespace string, afterVersion uint64, resp chan<- pierce.RoomMeta) error {
-	ret := _m.Called(namespace, afterVersion, resp)
+// Watch provides a mock function with given fields: afterVersion, resp
+func (_m *Core) Watch(afterVersion uint64, resp chan<- pierce.RoomMeta) error {
+	ret := _m.Called(afterVersion, resp)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, uint64, chan<- pierce.RoomMeta) error); ok {
-		r0 = rf(namespace, afterVersion, resp)
+	if rf, ok := ret.Get(0).(func(uint64, chan<- pierce.RoomMeta) error); ok {
+		r0 = rf(afterVersion, resp)
 	} else {
 		r0 = ret.Error(0)
 	}

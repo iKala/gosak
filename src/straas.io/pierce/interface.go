@@ -22,7 +22,7 @@ type Core interface {
 	// Leave removes socket connection
 	Leave(SocketConnection)
 	// Watch watches changes
-	Watch(namespace string, afterVersion uint64, resp chan<- RoomMeta) error
+	Watch(afterVersion uint64, resp chan<- RoomMeta) error
 }
 
 // RoomMeta includes namespace and id of a room
@@ -47,7 +47,24 @@ type SocketConnection interface {
 	ID() string
 }
 
+// Record stores changed data of syncer
+type Record struct {
+	// Index of the Record
+	Index uint64
+	// Room meta of the Record
+	Room RoomMeta
+	// Value is value of the room
+	Value interface{}
+}
+
+// Syncer defines an interface for sync
 type Syncer interface {
+	// Start starts syncer
 	Start()
+	// Stop stops syncer
 	Stop()
+	// Add adds room meta for sync
+	Add(roomMeta RoomMeta)
+
+	Diff(namespace string, afterIdx uint64, size int) ([]Record, error)
 }

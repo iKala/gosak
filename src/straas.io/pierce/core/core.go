@@ -107,7 +107,7 @@ func (r *coreImpl) Set(roomMeta pierce.RoomMeta, key string, v interface{}, ttl 
 	return nil
 }
 
-func (r *coreImpl) Watch(namespace string, afterVersion uint64, result chan<- pierce.RoomMeta) error {
+func (r *coreImpl) Watch(afterVersion uint64, result chan<- pierce.RoomMeta) error {
 	chResp := make(chan *client.Response, chBuffer)
 	defer close(chResp)
 
@@ -130,10 +130,8 @@ func (r *coreImpl) Watch(namespace string, afterVersion uint64, result chan<- pi
 		}
 	}()
 
-	// watch a namespace only
-	key2watch := fmt.Sprintf("%s/%s", r.keyPrefix, namespace)
 	// producer
-	return r.etcdAPI.Watch(key2watch, afterVersion, chResp, r.chDone)
+	return r.etcdAPI.Watch(r.keyPrefix, afterVersion, chResp, r.chDone)
 }
 
 func (r *coreImpl) Join(conn pierce.SocketConnection) {

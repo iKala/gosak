@@ -6,55 +6,57 @@ import (
 	"errors"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 
 	"straas.io/external/rdbms"
 	"straas.io/pierce"
 )
 
-func NewSinker(db *gorm.DB, namespace string) *GormSinker {
-	return &GormSinker{
-		db:        db,
-		namespace: namespace,
+// newSinker creates a sinker
+func newSinker(db *gorm.DB) (sinker, error) {
+	s := &gormSinker{
+		db: db,
 	}
+	if err := s.ensureSchema(); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
-type GormSinker struct {
-	db        *gorm.DB
-	namespace string
+// TODO: leverge namedQueue for better performance
+type gormSinker struct {
+	db *gorm.DB
 }
 
-// leverge namedQueue for better performance
-func (g *GormSinker) Sink(roomMeta pierce.RoomMeta, data interface{}, version uint64) error {
+func (g *gormSinker) ensureSchema() error {
+	errs := g.db.
+		AutoMigrate(Record{}).
+		AddUniqueIndex("ux_cluster_version", "cluster", "version").
+		GetErrors()
+	return combineErrors(errs)
+}
+
+func (g *gormSinker) Sink(roomMeta pierce.RoomMeta, data interface{}, version uint64) error {
 	v, _ := json.Marshal(data)
 
-	// TODO: marshall as string
 	rec := Record{
 		Namespace: roomMeta.Namespace,
 		Room:      roomMeta.ID,
 		Value:     string(v),
-		Cluster:   1, // hard-code is enough now
+		Cluster:   1, // hard-coded is enough now
 		Version:   version,
 	}
 	errs := g.db.Create(&rec).GetErrors()
 
-	switch {
-	case len(errs) == 0:
+	if len(errs) == 1 && rdbms.IsErrConstraintUnique(errs[0]) {
 		return nil
-
-	// violating unique constrain means such data already exist
-	case len(errs) == 1 && rdbms.IsErrConstraintUnique(errs[0]):
-		return nil
-
-	default:
-		return combineErrors(errs)
 	}
+	return combineErrors(errs)
 }
 
-func (g *GormSinker) Diff(index uint64, size int) ([]Record, error) {
+func (g *gormSinker) Diff(namespace string, index uint64, size int) ([]Record, error) {
 	var rec []Record
 	errs := g.db.
-		Where("ID > ? AND Namespace = ?", index, g.namespace).
+		Where("ID > ? AND Namespace = ?", index, namespace).
 		Limit(size).
 		Find(&rec).
 		GetErrors()
@@ -62,22 +64,23 @@ func (g *GormSinker) Diff(index uint64, size int) ([]Record, error) {
 	return rec, combineErrors(errs)
 }
 
-type Result struct {
+type result struct {
 	Version uint64
 }
 
-func (g *GormSinker) LatestVersion() (uint64, error) {
-	var result Result
+func (g *gormSinker) LatestVersion() (uint64, error) {
+	var r result
 	errs := g.db.Table("records").
 		Select("max(version) as version").
-		Where("namespace = ?", g.namespace).
-		Scan(result).
+		// hard-coded is enough now
+		Where("cluster = ?", 1).
+		Scan(&r).
 		GetErrors()
 	err := combineErrors(errs)
 	if err != nil {
 		return 0, err
 	}
-	return result.Version, nil
+	return r.Version, nil
 }
 
 func combineErrors(errs []error) error {

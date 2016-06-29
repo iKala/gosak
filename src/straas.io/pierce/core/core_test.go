@@ -192,9 +192,9 @@ func (s *coreTestSuite) TestWatch() {
 		}
 		return nil
 	}
-	s.etcdMock.On("Watch", "/pierce/xxx", uint64(100), mock.Anything, mock.Anything).Return(respFn).Once()
+	s.etcdMock.On("Watch", "/pierce", uint64(100), mock.Anything, mock.Anything).Return(respFn).Once()
 
-	s.impl.Watch("xxx", 100, wch)
+	s.impl.Watch(100, wch)
 
 	s.Equal(<-wch, pierce.RoomMeta{Namespace: "xxx", ID: "aaa"})
 	s.Equal(<-wch, pierce.RoomMeta{Namespace: "xxx", ID: "aaa"})
@@ -206,8 +206,8 @@ func (s *coreTestSuite) TestWatchError() {
 	respFn := func(key string, afterIdx uint64, ch chan<- *client.Response, done <-chan bool) *client.Error {
 		return &client.Error{}
 	}
-	s.etcdMock.On("Watch", "/pierce/xxx", uint64(100), mock.Anything, mock.Anything).Return(respFn).Once()
-	err := s.impl.Watch("xxx", 100, wch)
+	s.etcdMock.On("Watch", "/pierce", uint64(100), mock.Anything, mock.Anything).Return(respFn).Once()
+	err := s.impl.Watch(100, wch)
 	s.Error(err)
 }
 
