@@ -11,6 +11,20 @@ import (
 	"straas.io/pierce"
 )
 
+// Record defines how to keep changes in sinkers
+type Record struct {
+	// ID is auto increment primary key
+	ID uint64 `gorm:"primary_key,AUTO_INCREMENT"`
+	// Namespace is room namespace
+	Namespace string `gorm:"size:60" sql:"not null"`
+	// Room is room id
+	Room string `gorm:"size:100" sql:"not null"`
+	// Value is json value of the room
+	Value string `gorm:"size:0"`
+	// CreateAt for gorm to insert create time
+	CreatedAt time.Time
+}
+
 // newSinker creates a sinker
 func newSinker(db *gorm.DB) (sinker, error) {
 	s := &gormSinker{

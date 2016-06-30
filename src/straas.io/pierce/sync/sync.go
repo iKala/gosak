@@ -17,26 +17,6 @@ const (
 	watchBuffer      = 10000
 )
 
-// Record defines how to keep changes in sinkers
-type Record struct {
-	// ID is auto increment primary key
-	ID uint64 `gorm:"primary_key,AUTO_INCREMENT"`
-	// Namespace is room namespace
-	Namespace string `gorm:"size:60" sql:"not null"`
-	// Room is room id
-	Room string `gorm:"size:100" sql:"not null"`
-	// Value is json value of the room
-	Value string `gorm:"size:0"`
-	// Cluster is etcd cluster number, we might have multiple clusters
-	// or cluster rebuild, add unique constrain (Cluster, Version) to
-	// void etcd verion number confliction
-	Cluster uint32 `sql:"not null"`
-	// Version is etcd version
-	Version uint64 `sql:"not null"`
-	// CreateAt for gorm to insert create time
-	CreatedAt time.Time
-}
-
 // New creates an instance of Syncer
 func New(coreMgr pierce.Core, db *gorm.DB,
 	logm logmetric.LogMetric) (pierce.Syncer, error) {
