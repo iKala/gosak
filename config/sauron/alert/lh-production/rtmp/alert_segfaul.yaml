@@ -1,9 +1,0 @@
-interval: 1m
-script: |
-  v = mquery("rtmp", "rtmp.segfault", "value", "sum", "2m", "1m")
-  alert(
-    "segfault",
-    notify("backend-transcode"),
-    lastFor(v, ">", 10, "1m"),   // P0
-    lastFor(v, ">", 0, "0m")     // P1
-  )

@@ -1,7 +1,0 @@
-{
-  "name": "pierce_client",
-  "private": true,
-  "dependencies": {
-    "socket.io-client": "1.3.7"
-  }
-}

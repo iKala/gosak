@@ -1,11 +1,4 @@
-bin/
-pkg/
-build/
-coverage/
-node_modules/
-src/vendor/
-src/vendor
-*.log
-.DS_Store
-glide.lock
-source.tar.gz
+*.gz
+tags
+.cover
+vendor
